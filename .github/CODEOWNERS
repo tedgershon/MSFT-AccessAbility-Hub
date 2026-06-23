@@ -1,22 +1,14 @@
-# Code owners — auto-requests reviews by layer.
-# Replace the placeholder teams/handles with real ones, then enable
-# "Require review from Code Owners" in branch protection for `main`.
+# Code owners. This is a personal repo, so owners are individual users (no teams).
+#
+# Only the maintainer-gated areas are listed. services/, adapters/, and apps/ are
+# intentionally left unowned — any teammate's approval satisfies the branch ruleset's
+# one-review requirement.
+#
+# NOTE: these lines only *enforce* review if "Require review from Code Owners" is
+# enabled in the ruleset for `main`. Without that toggle they just auto-request you
+# as a reviewer (still useful).
 
-# Default
-*                       @ORG/maintainers
-
-# Core: the protected heart of the hub. Review carefully (Open/Closed).
-/core/                  @ORG/core-team
-
-# Services: the common contribution. One language per service.
-/services/              @ORG/services-team
-
-# Adapters: hardware / external-process wrappers.
-/adapters/              @ORG/adapters-team
-
-# Shell: the host app.
-/apps/                  @ORG/shell-team
-
-# Tooling, CI, agent instructions.
-/.github/               @ORG/maintainers
-/templates/             @ORG/maintainers
+# Core + repo tooling: maintainer (you) must review.
+/core/         @tedgershon
+/.github/      @tedgershon
+/templates/    @tedgershon
