@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://accessability-hub/contracts/health.schema.json",
+  "title": "HealthStatus",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["state", "checkedAt"],
+  "properties": {
+    "state": {
+      "type": "string",
+      "enum": ["healthy", "degraded", "unhealthy"]
+    },
+    "detail": { "type": "string" },
+    "checkedAt": { "type": "integer", "description": "Epoch millis." }
+  }
+}

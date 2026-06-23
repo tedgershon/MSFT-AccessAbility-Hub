@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://accessability-hub/contracts/capability.schema.json",
+  "title": "Capability",
+  "description": "A (resource, mode) pair declared by a service. Source of truth for TS + Python type generation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["resource", "mode"],
+  "properties": {
+    "resource": {
+      "type": "string",
+      "enum": [
+        "camera",
+        "audioIn",
+        "audioOut",
+        "cursor",
+        "keyboard",
+        "browser",
+        "displayOverlay",
+        "commandChannel"
+      ]
+    },
+    "mode": {
+      "type": "string",
+      "enum": ["exclusive", "shared"]
+    }
+  }
+}

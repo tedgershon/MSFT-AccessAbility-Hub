@@ -1,0 +1,18 @@
+{
+  "name": "@aah/clawpilot",
+  "version": "0.1.0",
+  "description": "ClawPilot computer-use service: wraps the external ClawPilot agent behind an MCP server + skills.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "echo \"(dev placeholder) node ./dist/mcp-server.js\"",
+    "typecheck": "tsc -b --noEmit",
+    "test": "vitest run",
+    "lint": "echo \"(lint placeholder)\""
+  },
+  "dependencies": {
+    "@aah/contracts": "workspace:*"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "@aah/input-injection",
+  "version": "0.1.0",
+  "description": "Adapter: the shared input multiplexer. All cursor/keyboard injection is serialized here.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --noEmit",
+    "test": "vitest run",
+    "lint": "echo \"(lint placeholder)\""
+  },
+  "dependencies": {
+    "@aah/contracts": "workspace:*"
+  }
+}

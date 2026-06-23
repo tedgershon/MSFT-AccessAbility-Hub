@@ -1,0 +1,23 @@
+{
+  "name": "@aah/shell",
+  "version": "0.1.0",
+  "description": "Electron host: toggle UI, status, and mode-switch UI. Bootstraps the kernel.",
+  "type": "module",
+  "main": "./dist/main.js",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "echo \"(dev placeholder) electron .\"",
+    "typecheck": "tsc -b --noEmit",
+    "test": "vitest run",
+    "lint": "echo \"(lint placeholder)\""
+  },
+  "dependencies": {
+    "@aah/contracts": "workspace:*",
+    "@aah/coordinator": "workspace:*",
+    "@aah/kernel": "workspace:*",
+    "@aah/colorblind-contrast": "workspace:*"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0"
+  }
+}

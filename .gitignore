@@ -1,0 +1,22 @@
+# Node / TS
+node_modules/
+dist/
+*.tsbuildinfo
+.turbo/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.uv/
+.ruff_cache/
+.pytest_cache/
+
+# Editors / OS
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+
+# Build output
+out/
+build/

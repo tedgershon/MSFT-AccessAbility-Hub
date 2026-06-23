@@ -1,0 +1,43 @@
+# Root task runner that sits on top of the TS (pnpm/turbo) and Python (uv) workspaces.
+# The two workspace managers coexist because they key on different files
+# (package.json vs pyproject.toml). This Taskfile is the single entry point.
+version: "3"
+
+tasks:
+  install:
+    desc: Install both TS and Python workspaces
+    cmds:
+      - pnpm install
+      - uv sync
+
+  build:
+    desc: Build the TS side
+    cmds:
+      - pnpm build
+
+  test:
+    desc: Run the full test suite (TS + Python)
+    cmds:
+      - pnpm test
+      - uv run pytest
+
+  test:ts:
+    desc: Run TS tests only
+    cmds:
+      - pnpm test
+
+  test:py:
+    desc: Run Python tests only
+    cmds:
+      - uv run pytest
+
+  lint:
+    desc: Lint both sides
+    cmds:
+      - pnpm lint
+      - uv run ruff check .
+
+  dev:
+    desc: Launch the hub shell in dev mode
+    cmds:
+      - pnpm --filter @aah/shell dev
