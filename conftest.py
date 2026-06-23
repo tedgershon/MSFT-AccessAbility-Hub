@@ -10,7 +10,6 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import pytest
-
 from aah_contracts import (
     AccessibilityService,
     Capability,
@@ -73,3 +72,15 @@ def lifecycle_log() -> LifecycleLog:
 @pytest.fixture
 def capturing_bus() -> CapturingBus:
     return CapturingBus()
+
+
+def pytest_sessionfinish(session, exitstatus: int) -> None:
+    """Don't fail CI while the suite is still empty.
+
+    During scaffolding there are no test files yet. Mirror vitest's
+    ``passWithNoTests`` so a clean run with nothing collected is a success
+    instead of pytest's exit code 5. Harmless once real tests exist.
+    """
+    if exitstatus == 5:  # pytest.ExitCode.NO_TESTS_COLLECTED
+        session.exitstatus = 0
+

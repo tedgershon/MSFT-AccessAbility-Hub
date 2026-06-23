@@ -10,6 +10,7 @@ import {
   type AccessibilityService,
   type Capability,
   cap,
+  degraded,
   type HealthStatus,
   healthy,
   type ServiceContext,
@@ -44,6 +45,6 @@ export class BrowserOpsService implements AccessibilityService {
   }
 
   healthCheck(): HealthStatus {
-    return healthy('browser-ops idle');
+    return this.#ctx ? healthy('browser-ops idle') : degraded('not loaded');
   }
 }

@@ -13,7 +13,5 @@ export async function startMcpServer(): Promise<void> {
   // permission checks before forwarding to the CommandQueue.
 }
 
-// Allow `node ./dist/mcp-server.js` to launch it standalone.
-if (import.meta.url === `file://${process.argv[1]}`) {
-  void startMcpServer();
-}
+// TODO: add a standalone launcher (e.g. `node ./dist/mcp-server.js`) once the
+// server is implemented and @types/node is wired into this package.

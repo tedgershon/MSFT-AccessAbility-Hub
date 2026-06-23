@@ -10,6 +10,7 @@ import {
   type AccessibilityService,
   type Capability,
   cap,
+  degraded,
   type HealthStatus,
   healthy,
   type ServiceContext,
@@ -51,6 +52,7 @@ export class ColorblindContrastService implements AccessibilityService {
   }
 
   healthCheck(): HealthStatus {
+    if (!this.#ctx) return degraded('not loaded');
     return healthy(this.#active ? `overlay active (${this.#strategy.id})` : 'idle');
   }
 }

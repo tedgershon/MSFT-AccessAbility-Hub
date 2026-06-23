@@ -12,6 +12,7 @@ import {
   type AccessibilityService,
   type Capability,
   cap,
+  degraded,
   type HealthStatus,
   healthy,
   type ServiceContext,
@@ -62,6 +63,7 @@ export class ClawPilotService implements AccessibilityService {
   }
 
   healthCheck(): HealthStatus {
+    if (!this.#ctx || !this.#queue) return degraded('not loaded');
     return healthy('clawpilot idle');
   }
 }
