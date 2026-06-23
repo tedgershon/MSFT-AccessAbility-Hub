@@ -56,3 +56,9 @@ task dev       # launch the hub shell
 
 The kernel knows nothing about specific disabilities. It only knows the service
 **contract** (`@aah/contracts`). Add a new service without touching the core.
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the workflow, **layer-prefixed** branch
+naming, and the service rules. Scaffold a new service with
+`task new:service -- <id> ts|py`.

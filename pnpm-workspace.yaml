@@ -1,10 +1,7 @@
 packages:
   - "apps/*"
   - "core/*"
+  - "services/*"
+  - "adapters/*"
   - "tests/fixtures"
-  - "services/browser-ops"
-  - "services/clawpilot"
-  - "services/colorblind-contrast"
-  # camera/audio adapters are Python-only -> uv workspace, not here.
-  - "adapters/input-injection"
-  - "adapters/clawpilotMCP"
+# Dirs without a package.json (Python-only services/adapters) are skipped by pnpm.

@@ -10,6 +10,11 @@ tasks:
       - pnpm install
       - uv sync
 
+  new:service:
+    desc: "Scaffold a new service. Usage: task new:service -- <id> [ts|py]"
+    cmds:
+      - node scripts/new-service.mjs {{.CLI_ARGS}}
+
   build:
     desc: Build the TS side
     cmds:
