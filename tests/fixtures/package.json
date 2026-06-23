@@ -1,0 +1,23 @@
+{
+  "name": "@aah/test-fixtures",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared test fixtures and fakes. Supports writing tests; contains no tests itself.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "lint": "echo \"(lint placeholder)\""
+  },
+  "dependencies": {
+    "@aah/contracts": "workspace:*"
+  }
+}

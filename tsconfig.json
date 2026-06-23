@@ -1,0 +1,15 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./core/contracts" },
+    { "path": "./core/kernel" },
+    { "path": "./core/coordinator" },
+    { "path": "./tests/fixtures" },
+    { "path": "./apps/shell" },
+    { "path": "./services/browser-ops" },
+    { "path": "./services/clawpilot" },
+    { "path": "./services/colorblind-contrast" },
+    { "path": "./adapters/input-injection" },
+    { "path": "./adapters/clawpilotMCP" }
+  ]
+}

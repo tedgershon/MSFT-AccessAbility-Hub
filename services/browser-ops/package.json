@@ -1,0 +1,19 @@
+{
+  "name": "@aah/browser-ops",
+  "version": "0.1.0",
+  "description": "Browser automation service (TS + Playwright). Runs out-of-process from the shell.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "echo \"(dev placeholder) node ./dist/main.js\"",
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "lint": "echo \"(lint placeholder)\""
+  },
+  "dependencies": {
+    "@aah/contracts": "workspace:*",
+    "playwright": "^1.44.0"
+  }
+}

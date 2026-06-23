@@ -1,0 +1,42 @@
+[project]
+name = "accessability-hub-python"
+version = "0.1.0"
+description = "Python-side services for the AccessAbility Hub (vision + audio)."
+requires-python = ">=3.11"
+# The root project is the Python test harness aggregator; it pulls in the shared
+# contracts package so conftest fixtures can import it.
+dependencies = ["aah-contracts"]
+
+# uv workspace: the Python half of the monorepo. Keyed on pyproject.toml so it
+# coexists cleanly with the pnpm/turbo TS workspace.
+[tool.uv.workspace]
+members = [
+  "core/contracts/python",
+  "services/eye-tracking",
+  "services/voice-commands",
+  "services/hand-signals",
+  "adapters/camera",
+  "adapters/audio",
+
+]
+
+[tool.uv.sources]
+aah-contracts = { workspace = true }
+
+[dependency-groups]
+dev = [
+  "pytest>=8.0",
+  "ruff>=0.5",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+extend-exclude = ["templates"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "core", "services", "adapters"]
+python_files = ["test_*.py", "*_test.py"]

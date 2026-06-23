@@ -1,0 +1,28 @@
+{
+  "name": "accessability-hub",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AccessAbility Hub — a desktop accessibility hub of isolated, toggleable accessibility services.",
+  "type": "module",
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "eslint .",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "new:service": "node scripts/new-service.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "globals": "^15.0.0",
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^1.6.0"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "@aah/clawpilot-mcp-adapter",
+  "version": "0.1.0",
+  "description": "Adapter: wraps the external ClawPilot agent (OpenClaw) behind our contract via MCP.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "lint": "echo \"(lint placeholder)\""
+  },
+  "dependencies": {
+    "@aah/contracts": "workspace:*"
+  }
+}

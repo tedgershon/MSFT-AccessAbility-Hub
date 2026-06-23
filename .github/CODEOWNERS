@@ -1,0 +1,14 @@
+# Code owners. This is a personal repo, so owners are individual users (no teams).
+#
+# Only the maintainer-gated areas are listed. services/, adapters/, and apps/ are
+# intentionally left unowned — any teammate's approval satisfies the branch ruleset's
+# one-review requirement.
+#
+# NOTE: these lines only *enforce* review if "Require review from Code Owners" is
+# enabled in the ruleset for `main`. Without that toggle they just auto-request you
+# as a reviewer (still useful).
+
+# Core + repo tooling: maintainer (you) must review.
+/core/         @tedgershon
+/.github/      @tedgershon
+/templates/    @tedgershon

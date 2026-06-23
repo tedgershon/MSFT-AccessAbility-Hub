@@ -1,0 +1,7 @@
+packages:
+  - "apps/*"
+  - "core/*"
+  - "services/*"
+  - "adapters/*"
+  - "tests/fixtures"
+# Dirs without a package.json (Python-only services/adapters) are skipped by pnpm.
