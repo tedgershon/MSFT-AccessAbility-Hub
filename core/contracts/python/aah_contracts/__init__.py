@@ -6,6 +6,12 @@ to the kernel exclusively across the event-bus / IPC seam — never via direct c
 """
 
 from .capability import AccessMode, Capability, Resource
+from .events import (
+    OVERLAY_ATTACH,
+    OVERLAY_DETACH,
+    OVERLAY_UPDATE,
+    OverlayLayer,
+)
 from .health import HealthState, HealthStatus, degraded, healthy, unhealthy
 from .service import AccessibilityService, ServiceContext, ServiceMeta
 
@@ -13,6 +19,10 @@ __all__ = [
     "AccessMode",
     "Capability",
     "Resource",
+    "OverlayLayer",
+    "OVERLAY_ATTACH",
+    "OVERLAY_UPDATE",
+    "OVERLAY_DETACH",
     "HealthState",
     "HealthStatus",
     "degraded",
