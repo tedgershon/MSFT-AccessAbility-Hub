@@ -38,13 +38,25 @@ export class ColorblindContrastService implements AccessibilityService {
   }
 
   async onEnable(): Promise<void> {
-    // TODO: attach the display overlay and begin per-frame correction.
+    const ctx = this.#ctx;
+    if (!ctx) return;
+    // Mount the correction layer on the shared overlay surface. The host-side
+    // OverlaySurface (and, later, the Electron renderer) keys layers by id.
     this.#active = true;
+    ctx.bus.emit('overlay/attach', {
+      id: this.#layerId,
+      ownerId: ctx.selfId,
+      kind: 'color-correction',
+      params: { strategy: this.#strategy.id },
+    });
   }
 
   async onDisable(): Promise<void> {
-    // TODO: detach the overlay.
+    const ctx = this.#ctx;
+    if (!ctx || !this.#active) return;
+    // Tear the correction layer off the overlay surface.
     this.#active = false;
+    ctx.bus.emit('overlay/detach', { id: this.#layerId, ownerId: ctx.selfId });
   }
 
   async onUnload(): Promise<void> {
@@ -54,5 +66,10 @@ export class ColorblindContrastService implements AccessibilityService {
   healthCheck(): HealthStatus {
     if (!this.#ctx) return degraded('not loaded');
     return healthy(this.#active ? `overlay active (${this.#strategy.id})` : 'idle');
+  }
+
+  /** Stable id for this service's single overlay layer. */
+  get #layerId(): string {
+    return `${this.meta.id}:correction`;
   }
 }

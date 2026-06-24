@@ -103,6 +103,10 @@ importers:
       '@aah/contracts':
         specifier: workspace:*
         version: link:../../core/contracts
+    devDependencies:
+      '@aah/test-fixtures':
+        specifier: workspace:*
+        version: link:../../tests/fixtures
 
   tests/fixtures:
     dependencies:
