@@ -67,6 +67,24 @@ describe('InMemoryEventBus', () => {
     errorSpy.mockRestore();
   });
 
+  it('routes a thrown subscriber error to the injected logger with structured fields', () => {
+    const error = vi.fn();
+    const bus = new InMemoryEventBus({ error });
+
+    const cause = new Error('handler exploded');
+    bus.on('arbiter/lease-released', () => {
+      throw cause;
+    });
+
+    bus.emit('arbiter/lease-released', { serviceId: 'svc' });
+
+    expect(error).toHaveBeenCalledTimes(1);
+    expect(error).toHaveBeenCalledWith('[event-bus] subscriber threw', {
+      topic: 'arbiter/lease-released',
+      error: cause,
+    });
+  });
+
   it('tolerates a handler that unsubscribes during dispatch', () => {
     const bus = new InMemoryEventBus();
     const second = vi.fn();
