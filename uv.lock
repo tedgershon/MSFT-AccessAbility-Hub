@@ -24,6 +24,8 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "aah-contracts" },
+    { name = "audio-adapter" },
+    { name = "voice-commands" },
 ]
 
 [package.dev-dependencies]
@@ -33,7 +35,11 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "aah-contracts", editable = "core/contracts/python" }]
+requires-dist = [
+    { name = "aah-contracts", editable = "core/contracts/python" },
+    { name = "audio-adapter", editable = "adapters/audio" },
+    { name = "voice-commands", editable = "services/voice-commands" },
+]
 
 [package.metadata.requires-dev]
 dev = [
