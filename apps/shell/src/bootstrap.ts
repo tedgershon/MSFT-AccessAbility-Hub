@@ -12,15 +12,22 @@
 import { Kernel } from '@aah/kernel';
 import { ModeCoordinator } from '@aah/coordinator';
 import { ColorblindContrastService } from '@aah/colorblind-contrast';
+import { OverlaySurface } from './overlay-surface.js';
 
 export interface Hub {
   kernel: Kernel;
   coordinator: ModeCoordinator;
+  overlay: OverlaySurface;
 }
 
 export async function createHub(): Promise<Hub> {
   const kernel = new Kernel();
   const coordinator = new ModeCoordinator(kernel.bus);
+
+  // Host-side consumer of the shared overlay render channel. Tiles emit
+  // `overlay/*` events; this surface keeps the active layers a renderer will paint.
+  const overlay = new OverlaySurface();
+  overlay.mount(kernel.bus);
 
   // When the arbiter denies an exclusive control resource, escalate to the
   // coordinator so the shell can offer a mode-switch instead of just failing.
@@ -33,5 +40,5 @@ export async function createHub(): Promise<Hub> {
   await kernel.install(new ColorblindContrastService());
 
   kernel.start();
-  return { kernel, coordinator };
+  return { kernel, coordinator, overlay };
 }
