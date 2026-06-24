@@ -6,7 +6,7 @@
  * single source of truth for the event surface.
  */
 
-import type { Capability } from './capability.js';
+import type { Capability, Resource } from './capability.js';
 import type { HealthStatus } from './health.js';
 
 /** Lifecycle phase a service can be in, as observed by the kernel. */
@@ -38,7 +38,7 @@ export interface EventMap {
   'service/phase-changed': { serviceId: string; phase: ServicePhase };
   'service/health': { serviceId: string; status: HealthStatus };
   'arbiter/lease-granted': { serviceId: string; capabilities: Capability[] };
-  'arbiter/lease-denied': { serviceId: string; conflictsWith: string[] };
+  'arbiter/lease-denied': { serviceId: string; conflictsWith: string[]; resources: Resource[] };
   'arbiter/lease-released': { serviceId: string };
   'coordinator/mode-changed': { channel: string; activeServiceId: string };
   'coordinator/mode-switch-requested': { channel: string; candidates: string[] };

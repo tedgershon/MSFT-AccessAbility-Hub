@@ -57,7 +57,7 @@ export class ResourceArbiter {
     if (conflicts.size > 0) {
       const conflictsWith = [...conflicts.keys()];
       const resources = [...new Set([...conflicts.values()].flatMap((s) => [...s]))];
-      this.bus.emit('arbiter/lease-denied', { serviceId, conflictsWith });
+      this.bus.emit('arbiter/lease-denied', { serviceId, conflictsWith, resources });
       return { ok: false, conflictsWith, resources };
     }
 
