@@ -1,9 +1,10 @@
 /**
  * Unit tests for the colorblind / contrast overlay service.
  *
- * The service has no renderer handle, so it surfaces overlay attach/detach over
- * the bus seam (`service/health`). These tests drive the lifecycle with a
- * {@link CapturingBus} and assert what the service published.
+ * The service has no renderer handle, so it mounts/unmounts its correction layer
+ * on the shared overlay surface by emitting `overlay/attach` / `overlay/detach`.
+ * These tests drive the lifecycle with a {@link CapturingBus} and assert what the
+ * service published.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -36,11 +37,20 @@ function makeCtx(
   return { ctx, bus };
 }
 
-/** All `service/health` payloads the service published, in order. */
-function healthEvents(bus: CapturingBus): Array<EventPayload<'service/health'>> {
+const LAYER_ID = 'colorblind-contrast:correction';
+
+/** All `overlay/attach` payloads the service published, in order. */
+function attachEvents(bus: CapturingBus): Array<EventPayload<'overlay/attach'>> {
   return bus.emitted
-    .filter((e) => e.topic === 'service/health')
-    .map((e) => e.payload as EventPayload<'service/health'>);
+    .filter((e) => e.topic === 'overlay/attach')
+    .map((e) => e.payload as EventPayload<'overlay/attach'>);
+}
+
+/** All `overlay/detach` payloads the service published, in order. */
+function detachEvents(bus: CapturingBus): Array<EventPayload<'overlay/detach'>> {
+  return bus.emitted
+    .filter((e) => e.topic === 'overlay/detach')
+    .map((e) => e.payload as EventPayload<'overlay/detach'>);
 }
 
 describe('ColorblindContrastService', () => {
@@ -49,30 +59,32 @@ describe('ColorblindContrastService', () => {
     expect(svc.requires).toEqual([{ resource: 'displayOverlay', mode: 'shared' }]);
   });
 
-  it('onEnable attaches the overlay via a service/health event with the active strategy', async () => {
+  it('onEnable mounts a color-correction layer on the overlay surface', async () => {
     const { ctx, bus } = makeCtx();
     const svc = new ColorblindContrastService();
     await svc.onLoad(ctx);
     await svc.onEnable();
 
-    const events = healthEvents(bus);
+    const events = attachEvents(bus);
     expect(events).toHaveLength(1);
-    expect(events[0].serviceId).toBe('colorblind-contrast');
-    expect(events[0].status.state).toBe('healthy');
-    expect(events[0].status.detail).toBe('overlay active (deuteranopia)');
+    expect(events[0]).toEqual({
+      id: LAYER_ID,
+      ownerId: 'colorblind-contrast',
+      kind: 'color-correction',
+      params: { strategy: 'deuteranopia' },
+    });
   });
 
-  it('onDisable detaches the overlay via a service/health event reporting idle', async () => {
+  it('onDisable detaches the layer it attached', async () => {
     const { ctx, bus } = makeCtx();
     const svc = new ColorblindContrastService();
     await svc.onLoad(ctx);
     await svc.onEnable();
     await svc.onDisable();
 
-    const events = healthEvents(bus);
-    expect(events).toHaveLength(2);
-    expect(events[1].status.state).toBe('healthy');
-    expect(events[1].status.detail).toBe('idle');
+    const events = detachEvents(bus);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toEqual({ id: LAYER_ID, ownerId: 'colorblind-contrast' });
   });
 
   it('healthCheck reflects load + overlay state transitions', async () => {
@@ -95,13 +107,13 @@ describe('ColorblindContrastService', () => {
     expect(svc.healthCheck().state).toBe('degraded');
   });
 
-  it('selects the configured strategy and reflects it in the emitted payload', async () => {
+  it('selects the configured strategy and reflects it in the attached layer', async () => {
     const { ctx, bus } = makeCtx(fakeConfig({ 'colorblind.strategy': 'protanopia' }));
     const svc = new ColorblindContrastService();
     await svc.onLoad(ctx);
     await svc.onEnable();
 
-    expect(healthEvents(bus)[0].status.detail).toBe('overlay active (protanopia)');
+    expect(attachEvents(bus)[0].params).toEqual({ strategy: 'protanopia' });
     expect(svc.healthCheck().detail).toBe('overlay active (protanopia)');
   });
 
@@ -111,15 +123,14 @@ describe('ColorblindContrastService', () => {
     await svc.onLoad(ctx);
     await svc.onEnable();
 
-    expect(healthEvents(bus)[0].status.detail).toBe('overlay active (deuteranopia)');
+    expect(attachEvents(bus)[0].params).toEqual({ strategy: 'deuteranopia' });
   });
 
-  it('does not publish overlay state before it is loaded', async () => {
+  it('does not touch the overlay surface before it is loaded', async () => {
     const svc = new ColorblindContrastService();
-    // No onLoad → no ctx → enabling cannot publish (and must not throw).
-    await svc.onEnable();
-    await svc.onDisable();
-    // Nothing to assert on the bus; the guard simply prevents a crash.
+    // No onLoad → no ctx → enabling cannot emit (and must not throw).
+    await expect(svc.onEnable()).resolves.toBeUndefined();
+    await expect(svc.onDisable()).resolves.toBeUndefined();
     expect(svc.healthCheck().state).toBe('degraded');
   });
 });

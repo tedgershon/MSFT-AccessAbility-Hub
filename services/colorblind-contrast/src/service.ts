@@ -38,17 +38,25 @@ export class ColorblindContrastService implements AccessibilityService {
   }
 
   async onEnable(): Promise<void> {
-    // Surface the overlay over the bus seam (the service has no renderer handle).
-    // The shell/renderer observes `service/health` and mounts/refreshes the overlay
-    // when this service reports an active correction strategy.
+    const ctx = this.#ctx;
+    if (!ctx) return;
+    // Mount the correction layer on the shared overlay surface. The host-side
+    // OverlaySurface (and, later, the Electron renderer) keys layers by id.
     this.#active = true;
-    this.#publishOverlayState();
+    ctx.bus.emit('overlay/attach', {
+      id: this.#layerId,
+      ownerId: ctx.selfId,
+      kind: 'color-correction',
+      params: { strategy: this.#strategy.id },
+    });
   }
 
   async onDisable(): Promise<void> {
-    // Detach: flip internal state and re-publish so observers tear the overlay down.
+    const ctx = this.#ctx;
+    if (!ctx || !this.#active) return;
+    // Tear the correction layer off the overlay surface.
     this.#active = false;
-    this.#publishOverlayState();
+    ctx.bus.emit('overlay/detach', { id: this.#layerId, ownerId: ctx.selfId });
   }
 
   async onUnload(): Promise<void> {
@@ -57,21 +65,11 @@ export class ColorblindContrastService implements AccessibilityService {
 
   healthCheck(): HealthStatus {
     if (!this.#ctx) return degraded('not loaded');
-    return this.#overlayStatus();
-  }
-
-  /** Current overlay state as a HealthStatus (single source for health + bus). */
-  #overlayStatus(): HealthStatus {
     return healthy(this.#active ? `overlay active (${this.#strategy.id})` : 'idle');
   }
 
-  /** Announce the overlay attach/detach over the bus the kernel injected. */
-  #publishOverlayState(): void {
-    const ctx = this.#ctx;
-    if (!ctx) return;
-    ctx.bus.emit('service/health', {
-      serviceId: ctx.selfId,
-      status: this.#overlayStatus(),
-    });
+  /** Stable id for this service's single overlay layer. */
+  get #layerId(): string {
+    return `${this.meta.id}:correction`;
   }
 }
