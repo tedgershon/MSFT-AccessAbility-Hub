@@ -3,7 +3,7 @@ name = "voice-commands"
 version = "0.1.0"
 description = "Voice command accessibility service (Python + Whisper / Vosk)."
 requires-python = ">=3.11"
-dependencies = ["aah-contracts"]
+dependencies = ["aah-contracts", "audio-adapter"]
 
 [build-system]
 requires = ["hatchling"]

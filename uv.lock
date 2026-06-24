@@ -376,7 +376,11 @@ version = "0.1.0"
 source = { editable = "services/voice-commands" }
 dependencies = [
     { name = "aah-contracts" },
+    { name = "audio-adapter" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "aah-contracts", editable = "core/contracts/python" }]
+requires-dist = [
+    { name = "aah-contracts", editable = "core/contracts/python" },
+    { name = "audio-adapter", editable = "adapters/audio" },
+]
