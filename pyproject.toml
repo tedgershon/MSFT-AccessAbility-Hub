@@ -4,8 +4,9 @@ version = "0.1.0"
 description = "Python-side services for the AccessAbility Hub (vision + audio)."
 requires-python = ">=3.11"
 # The root project is the Python test harness aggregator; it pulls in the shared
-# contracts package so conftest fixtures can import it.
-dependencies = ["aah-contracts"]
+# contracts package (for conftest fixtures) plus every Python package whose module
+# is imported by a test, so `uv sync` installs them for the suite.
+dependencies = ["aah-contracts", "audio-adapter"]
 
 # uv workspace: the Python half of the monorepo. Keyed on pyproject.toml so it
 # coexists cleanly with the pnpm/turbo TS workspace.
@@ -22,6 +23,7 @@ members = [
 
 [tool.uv.sources]
 aah-contracts = { workspace = true }
+audio-adapter = { workspace = true }
 
 [dependency-groups]
 dev = [
