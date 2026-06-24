@@ -108,7 +108,11 @@ describe('ResourceArbiter', () => {
 
     const denied = payloadsOf(bus, 'arbiter/lease-denied');
     expect(denied).toHaveLength(1);
-    expect(denied[0]).toMatchObject({ serviceId: 'b', conflictsWith: ['a'] });
+    expect(denied[0]).toMatchObject({
+      serviceId: 'b',
+      conflictsWith: ['a'],
+      resources: ['camera'],
+    });
   });
 
   it('emits arbiter/lease-released on release', () => {

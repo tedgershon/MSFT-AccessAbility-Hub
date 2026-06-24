@@ -12,7 +12,15 @@
 import { Kernel } from '@aah/kernel';
 import { ModeCoordinator } from '@aah/coordinator';
 import { ColorblindContrastService } from '@aah/colorblind-contrast';
+import type { Resource } from '@aah/contracts';
 import { OverlaySurface } from './overlay-surface.js';
+
+/**
+ * Resources a service actively *drives* (a single owner at a time). A denied lease
+ * on one of these is a control conflict worth a mode-switch; sharing conflicts on
+ * passive resources (e.g. `displayOverlay`) are not the coordinator's concern.
+ */
+const CONTROL_CHANNELS = new Set<Resource>(['cursor', 'keyboard', 'audioIn', 'commandChannel']);
 
 export interface Hub {
   kernel: Kernel;
@@ -31,8 +39,9 @@ export async function createHub(): Promise<Hub> {
 
   // When the arbiter denies an exclusive control resource, escalate to the
   // coordinator so the shell can offer a mode-switch instead of just failing.
-  kernel.bus.on('arbiter/lease-denied', ({ serviceId, conflictsWith }) => {
-    // TODO: only escalate for *control* channels (cursor/keyboard/audioIn/...).
+  kernel.bus.on('arbiter/lease-denied', ({ serviceId, conflictsWith, resources }) => {
+    // Only a contested *control* channel warrants a mode-switch.
+    if (!resources.some((r) => CONTROL_CHANNELS.has(r))) return;
     coordinator.arbitrate('input', [serviceId, ...conflictsWith]);
   });
 
