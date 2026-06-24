@@ -8,6 +8,7 @@
 export { Kernel, type KernelOptions } from './kernel.js';
 export { ServiceRegistry, type ServiceRecord } from './registry.js';
 export { InMemoryEventBus } from './event-bus.js';
+export { type Logger, consoleLogger } from './logger.js';
 export { InMemoryConfigStore } from './config-store.js';
 export {
   ResourceArbiter,

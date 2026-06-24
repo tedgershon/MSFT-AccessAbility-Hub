@@ -12,9 +12,15 @@ import type {
   EventPayload,
   EventTopic,
 } from '@aah/contracts';
+import { consoleLogger, type Logger } from './logger.js';
 
 export class InMemoryEventBus implements EventBus {
   readonly #handlers = new Map<EventTopic, Set<EventHandler<EventTopic>>>();
+  readonly #logger: Logger;
+
+  constructor(logger: Logger = consoleLogger) {
+    this.#logger = logger;
+  }
 
   emit<T extends EventTopic>(topic: T, payload: EventPayload<T>): void {
     const set = this.#handlers.get(topic);
@@ -25,8 +31,7 @@ export class InMemoryEventBus implements EventBus {
         (handler as EventHandler<T>)(payload);
       } catch (err) {
         // A misbehaving subscriber must never break the bus (crash isolation).
-        // TODO: route to structured logging / supervisor.
-        console.error(`[event-bus] handler for "${topic}" threw`, err);
+        this.#logger.error('[event-bus] subscriber threw', { topic, error: err });
       }
     }
   }
