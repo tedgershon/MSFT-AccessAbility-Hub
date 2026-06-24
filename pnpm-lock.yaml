@@ -68,12 +68,20 @@ importers:
       '@aah/contracts':
         specifier: workspace:*
         version: link:../contracts
+    devDependencies:
+      '@aah/test-fixtures':
+        specifier: workspace:*
+        version: link:../../tests/fixtures
 
   core/kernel:
     dependencies:
       '@aah/contracts':
         specifier: workspace:*
         version: link:../contracts
+    devDependencies:
+      '@aah/test-fixtures':
+        specifier: workspace:*
+        version: link:../../tests/fixtures
 
   services/browser-ops:
     dependencies:
