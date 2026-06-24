@@ -38,13 +38,17 @@ export class ColorblindContrastService implements AccessibilityService {
   }
 
   async onEnable(): Promise<void> {
-    // TODO: attach the display overlay and begin per-frame correction.
+    // Surface the overlay over the bus seam (the service has no renderer handle).
+    // The shell/renderer observes `service/health` and mounts/refreshes the overlay
+    // when this service reports an active correction strategy.
     this.#active = true;
+    this.#publishOverlayState();
   }
 
   async onDisable(): Promise<void> {
-    // TODO: detach the overlay.
+    // Detach: flip internal state and re-publish so observers tear the overlay down.
     this.#active = false;
+    this.#publishOverlayState();
   }
 
   async onUnload(): Promise<void> {
@@ -53,6 +57,21 @@ export class ColorblindContrastService implements AccessibilityService {
 
   healthCheck(): HealthStatus {
     if (!this.#ctx) return degraded('not loaded');
+    return this.#overlayStatus();
+  }
+
+  /** Current overlay state as a HealthStatus (single source for health + bus). */
+  #overlayStatus(): HealthStatus {
     return healthy(this.#active ? `overlay active (${this.#strategy.id})` : 'idle');
+  }
+
+  /** Announce the overlay attach/detach over the bus the kernel injected. */
+  #publishOverlayState(): void {
+    const ctx = this.#ctx;
+    if (!ctx) return;
+    ctx.bus.emit('service/health', {
+      serviceId: ctx.selfId,
+      status: this.#overlayStatus(),
+    });
   }
 }
