@@ -56,6 +56,9 @@ importers:
       '@aah/kernel':
         specifier: workspace:*
         version: link:../../core/kernel
+      '@aah/simplify-text':
+        specifier: workspace:*
+        version: link:../../services/simplify-text
     devDependencies:
       electron:
         specifier: ^30.0.0
@@ -99,6 +102,16 @@ importers:
         version: link:../../core/contracts
 
   services/colorblind-contrast:
+    dependencies:
+      '@aah/contracts':
+        specifier: workspace:*
+        version: link:../../core/contracts
+    devDependencies:
+      '@aah/test-fixtures':
+        specifier: workspace:*
+        version: link:../../tests/fixtures
+
+  services/simplify-text:
     dependencies:
       '@aah/contracts':
         specifier: workspace:*

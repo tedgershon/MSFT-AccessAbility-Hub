@@ -12,6 +12,7 @@
 import { Kernel } from '@aah/kernel';
 import { ModeCoordinator } from '@aah/coordinator';
 import { ColorblindContrastService } from '@aah/colorblind-contrast';
+import { SimplifyTextService } from '@aah/simplify-text';
 import type { Resource } from '@aah/contracts';
 import { OverlaySurface } from './overlay-surface.js';
 
@@ -47,6 +48,7 @@ export async function createHub(): Promise<Hub> {
 
   // In-shell TS services register here. New services slot in without kernel edits.
   await kernel.install(new ColorblindContrastService());
+  await kernel.install(new SimplifyTextService());
 
   kernel.start();
   return { kernel, coordinator, overlay };

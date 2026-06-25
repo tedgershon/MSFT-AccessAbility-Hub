@@ -1,0 +1,26 @@
+{
+  "name": "@aah/simplify-text",
+  "version": "0.1.0",
+  "description": "Text simplification service — plain-language (MTCAI) and cognitive-style restructure (NAPE) modes.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "lint": "echo \"(lint placeholder)\""
+  },
+  "dependencies": {
+    "@aah/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@aah/test-fixtures": "workspace:*"
+  }
+}
