@@ -14,6 +14,7 @@ dependencies = ["aah-contracts", "audio-adapter"]
 members = [
   "core/contracts/python",
   "services/eye-tracking",
+  "services/gaze-correlation",
   "services/voice-commands",
   "services/hand-signals",
   "adapters/camera",
