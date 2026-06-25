@@ -1,20 +1,20 @@
 /**
  * Simplify Text service — dyslexia, ADHD & cognitive accessibility.
  *
- * Screen-text transform engine: the shell (or a user shortcut) emits
- * `simplifyText/request` with the selected text; this service transforms it and
- * re-injects the result in-place via the shared input multiplexer (`input/intent`).
+ * When the user selects text and triggers a simplification request, this service
+ * transforms it and surfaces the result as an overlay panel on top of the original
+ * content — suitable for read-only text (health portals, articles, PDFs) where
+ * in-place keyboard injection cannot replace content.
  *
  * Modes (Strategy pattern, switchable via `simplifyText.mode` config key):
- *   simplify   — MTCAI (Georgia Tech CIDI, issue #18): plain-language reduction
- *                for health portals, forms, and complex on-screen text.
+ *   simplify    — MTCAI (Georgia Tech CIDI, issue #18): plain-language reduction
+ *                 for health portals, forms, and complex on-screen text.
  *   restructure — NAPE (CMU VariAbility Lab, issue #20): reformat learning
  *                 materials to cognitive style (ADHD / dyslexia / autism).
  *
- * Declares `commandChannel: exclusive` because Scout (ClawPilot) drives the
- * in-place text replacement and only one service may hold that channel at a time.
- * This is fundamentally different from colorblind-contrast: this service modifies
- * content, not display rendering.
+ * Declares `displayOverlay: shared` — the panel coexists with colorblind-contrast
+ * and any other overlay tile. The renderer keys on `kind: 'text-simplification'`
+ * to paint the panel UI; `params` carries the original and simplified text.
  */
 
 import {
@@ -36,12 +36,12 @@ export class SimplifyTextService implements AccessibilityService {
     version: '0.1.0',
   };
 
-  // commandChannel: exclusive — only one service drives Scout text replacement.
-  readonly requires: Capability[] = [cap('commandChannel', 'exclusive')];
+  readonly requires: Capability[] = [cap('displayOverlay', 'shared')];
 
   #ctx?: ServiceContext;
   #strategy: TransformStrategy = STRATEGIES.simplify;
   #active = false;
+  #panelAttached = false;
   #unsubscribe?: () => void;
 
   async onLoad(ctx: ServiceContext): Promise<void> {
@@ -54,28 +54,33 @@ export class SimplifyTextService implements AccessibilityService {
     const ctx = this.#ctx;
     if (!ctx) return;
     this.#active = true;
-    // Subscribe to transform requests. The shell or a global shortcut emits
-    // `simplifyText/request` with the user-selected text; we transform and
-    // re-inject via the input multiplexer so the OS sees it as keyboard input.
     this.#unsubscribe = ctx.bus.on('simplifyText/request', ({ text }) => {
-      const transformed = this.#strategy.transform(text);
-      // Route through the input multiplexer — never inject directly (hard rule #5).
-      ctx.bus.emit('input/intent', {
-        source: ctx.selfId,
-        kind: 'keyboard',
-        payload: { text: transformed },
-      });
-      ctx.bus.emit('simplifyText/result', {
-        original: text,
-        transformed,
-        mode: this.#strategy.id,
-      });
+      const simplified = this.#strategy.transform(text);
+      const layer = {
+        id: this.#layerId,
+        ownerId: ctx.selfId,
+        kind: 'text-simplification',
+        params: { mode: this.#strategy.id, original: text, simplified },
+      };
+      // First request: attach the panel. Subsequent requests: update it in place
+      // so the renderer replaces the content without flickering.
+      if (this.#panelAttached) {
+        ctx.bus.emit('overlay/update', layer);
+      } else {
+        ctx.bus.emit('overlay/attach', layer);
+        this.#panelAttached = true;
+      }
     });
   }
 
   async onDisable(): Promise<void> {
+    const ctx = this.#ctx;
     this.#unsubscribe?.();
     this.#unsubscribe = undefined;
+    if (ctx && this.#panelAttached) {
+      ctx.bus.emit('overlay/detach', { id: this.#layerId, ownerId: ctx.selfId });
+      this.#panelAttached = false;
+    }
     this.#active = false;
   }
 
@@ -85,6 +90,10 @@ export class SimplifyTextService implements AccessibilityService {
 
   healthCheck(): HealthStatus {
     if (!this.#ctx) return degraded('not loaded');
-    return healthy(this.#active ? `active (${this.#strategy.id})` : 'idle');
+    return healthy(this.#active ? `panel active (${this.#strategy.id})` : 'idle');
+  }
+
+  get #layerId(): string {
+    return `${this.meta.id}:panel`;
   }
 }

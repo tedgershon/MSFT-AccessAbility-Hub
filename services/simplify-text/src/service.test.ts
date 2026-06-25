@@ -1,13 +1,10 @@
 /**
  * Unit tests for the Simplify Text service.
  *
- * Unlike colorblind-contrast (a passive display overlay), this service actively
- * transforms content: it subscribes to `simplifyText/request` events, runs the
- * selected text through a transform strategy, and re-injects the result as
- * `input/intent` (keyboard) via the input multiplexer — never touching the overlay
- * surface at all.
- *
- * Tests drive the full request→transform→inject flow using a {@link CapturingBus}.
+ * The service shows an overlay panel on top of the original text rather than
+ * replacing it in-place. On the first `simplifyText/request` it attaches the panel
+ * (`overlay/attach`); subsequent requests update it without re-attaching
+ * (`overlay/update`). Disabling the service detaches the panel.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -39,57 +36,87 @@ function makeCtx(
   return { ctx, bus };
 }
 
-function intentEvents(bus: CapturingBus): Array<EventPayload<'input/intent'>> {
+const LAYER_ID = 'simplify-text:panel';
+
+function attachEvents(bus: CapturingBus): Array<EventPayload<'overlay/attach'>> {
   return bus.emitted
-    .filter((e) => e.topic === 'input/intent')
-    .map((e) => e.payload as EventPayload<'input/intent'>);
+    .filter((e) => e.topic === 'overlay/attach')
+    .map((e) => e.payload as EventPayload<'overlay/attach'>);
 }
 
-function resultEvents(bus: CapturingBus): Array<EventPayload<'simplifyText/result'>> {
+function updateEvents(bus: CapturingBus): Array<EventPayload<'overlay/update'>> {
   return bus.emitted
-    .filter((e) => e.topic === 'simplifyText/result')
-    .map((e) => e.payload as EventPayload<'simplifyText/result'>);
+    .filter((e) => e.topic === 'overlay/update')
+    .map((e) => e.payload as EventPayload<'overlay/update'>);
+}
+
+function detachEvents(bus: CapturingBus): Array<EventPayload<'overlay/detach'>> {
+  return bus.emitted
+    .filter((e) => e.topic === 'overlay/detach')
+    .map((e) => e.payload as EventPayload<'overlay/detach'>);
 }
 
 describe('SimplifyTextService', () => {
-  it('declares commandChannel:exclusive — not a display overlay', () => {
+  it('declares displayOverlay:shared — panel coexists with other overlay tiles', () => {
     const svc = new SimplifyTextService();
-    expect(svc.requires).toEqual([{ resource: 'commandChannel', mode: 'exclusive' }]);
+    expect(svc.requires).toEqual([{ resource: 'displayOverlay', mode: 'shared' }]);
   });
 
-  it('re-injects transformed text via input/intent on a simplifyText/request', async () => {
+  it('attaches the panel on the first simplifyText/request', async () => {
     const { ctx, bus } = makeCtx();
     const svc = new SimplifyTextService();
     await svc.onLoad(ctx);
     await svc.onEnable();
 
-    bus.emit('simplifyText/request', { text: 'The patient should take medication.' });
+    bus.emit('simplifyText/request', { text: 'Complex medical text.' });
 
-    const intents = intentEvents(bus);
-    expect(intents).toHaveLength(1);
-    expect(intents[0].source).toBe('simplify-text');
-    expect(intents[0].kind).toBe('keyboard');
-    // Transform is stubbed (identity) — asserts the plumbing, not the AI output.
-    expect((intents[0].payload as { text: string }).text).toBe(
-      'The patient should take medication.',
-    );
-  });
-
-  it('emits simplifyText/result with original, transformed text and active mode', async () => {
-    const { ctx, bus } = makeCtx();
-    const svc = new SimplifyTextService();
-    await svc.onLoad(ctx);
-    await svc.onEnable();
-
-    bus.emit('simplifyText/request', { text: 'Complex text.' });
-
-    const results = resultEvents(bus);
-    expect(results).toHaveLength(1);
-    expect(results[0]).toEqual({
-      original: 'Complex text.',
-      transformed: 'Complex text.',
-      mode: 'simplify',
+    const events = attachEvents(bus);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toEqual({
+      id: LAYER_ID,
+      ownerId: 'simplify-text',
+      kind: 'text-simplification',
+      params: { mode: 'simplify', original: 'Complex medical text.', simplified: 'Complex medical text.' },
     });
+  });
+
+  it('updates the existing panel on subsequent requests — does not re-attach', async () => {
+    const { ctx, bus } = makeCtx();
+    const svc = new SimplifyTextService();
+    await svc.onLoad(ctx);
+    await svc.onEnable();
+
+    bus.emit('simplifyText/request', { text: 'First text.' });
+    bus.emit('simplifyText/request', { text: 'Second text.' });
+
+    expect(attachEvents(bus)).toHaveLength(1);
+    const updates = updateEvents(bus);
+    expect(updates).toHaveLength(1);
+    expect(updates[0].params?.original).toBe('Second text.');
+  });
+
+  it('detaches the panel on onDisable', async () => {
+    const { ctx, bus } = makeCtx();
+    const svc = new SimplifyTextService();
+    await svc.onLoad(ctx);
+    await svc.onEnable();
+
+    bus.emit('simplifyText/request', { text: 'Some text.' });
+    await svc.onDisable();
+
+    const events = detachEvents(bus);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toEqual({ id: LAYER_ID, ownerId: 'simplify-text' });
+  });
+
+  it('does not detach if no request was made before disabling', async () => {
+    const { ctx, bus } = makeCtx();
+    const svc = new SimplifyTextService();
+    await svc.onLoad(ctx);
+    await svc.onEnable();
+    await svc.onDisable();
+
+    expect(detachEvents(bus)).toHaveLength(0);
   });
 
   it('stops handling requests after onDisable', async () => {
@@ -101,8 +128,7 @@ describe('SimplifyTextService', () => {
 
     bus.emit('simplifyText/request', { text: 'Should be ignored.' });
 
-    expect(intentEvents(bus)).toHaveLength(0);
-    expect(resultEvents(bus)).toHaveLength(0);
+    expect(attachEvents(bus)).toHaveLength(0);
   });
 
   it('uses RestructureStrategy when configured (NAPE cognitive-style mode)', async () => {
@@ -113,8 +139,8 @@ describe('SimplifyTextService', () => {
 
     bus.emit('simplifyText/request', { text: 'Learning material.' });
 
-    expect(resultEvents(bus)[0].mode).toBe('restructure');
-    expect(svc.healthCheck().detail).toBe('active (restructure)');
+    expect(attachEvents(bus)[0].params?.mode).toBe('restructure');
+    expect(svc.healthCheck().detail).toBe('panel active (restructure)');
   });
 
   it('falls back to simplify when configured mode is unrecognised', async () => {
@@ -125,7 +151,7 @@ describe('SimplifyTextService', () => {
 
     bus.emit('simplifyText/request', { text: 'text' });
 
-    expect(resultEvents(bus)[0].mode).toBe('simplify');
+    expect(attachEvents(bus)[0].params?.mode).toBe('simplify');
   });
 
   it('healthCheck reflects full lifecycle transitions', async () => {
@@ -139,7 +165,7 @@ describe('SimplifyTextService', () => {
     expect(svc.healthCheck().detail).toBe('idle');
 
     await svc.onEnable();
-    expect(svc.healthCheck().detail).toBe('active (simplify)');
+    expect(svc.healthCheck().detail).toBe('panel active (simplify)');
 
     await svc.onDisable();
     expect(svc.healthCheck().detail).toBe('idle');
