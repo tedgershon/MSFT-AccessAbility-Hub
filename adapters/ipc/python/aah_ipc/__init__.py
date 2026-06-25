@@ -14,9 +14,10 @@ from __future__ import annotations
 
 import asyncio
 import json
+import sys
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Literal, Protocol, runtime_checkable
+from typing import Any, BinaryIO, Literal, Protocol, runtime_checkable
 
 from aah_contracts import (
     AccessibilityService,
@@ -230,6 +231,94 @@ class ServiceHost:
         self._unsubscribe()
 
 
+# ---------------------------------------------------------------------------
+# StdioChannel — a real Channel over newline-delimited JSON on byte streams
+# ---------------------------------------------------------------------------
+class StdioChannel:
+    """A concrete :class:`Channel` over NDJSON frames on binary streams.
+
+    Mirror of the TS ``StdioChannel``: serialize each frame with
+    :func:`encode_frame` as a single ``\\n``-terminated line on ``output``, and parse
+    each complete line read from ``input`` with :func:`decode_frame`. Defaults wire up
+    the process's real stdin/stdout so ``python -m <service>`` can host over stdio.
+
+    Reads are driven by the blocking :meth:`serve` loop (one line at a time, returning
+    at EOF). A line that fails to decode is reported to ``on_error`` and skipped — it
+    does not abort the loop. Empty lines are ignored. The channel does not own the
+    streams it is handed; :meth:`close` only stops dispatching.
+    """
+
+    def __init__(
+        self,
+        input: BinaryIO | None = None,
+        output: BinaryIO | None = None,
+        *,
+        on_error: Callable[[Exception, str], None] | None = None,
+    ) -> None:
+        self._input: BinaryIO = input if input is not None else sys.stdin.buffer
+        self._output: BinaryIO = output if output is not None else sys.stdout.buffer
+        self._handlers: set[FrameHandler] = set()
+        self._on_error = on_error
+        self._closed = False
+
+    def send(self, frame: Frame) -> None:
+        if self._closed:
+            return
+        self._output.write(encode_frame(frame).encode("utf-8") + b"\n")
+        self._output.flush()
+
+    def on_message(self, handler: FrameHandler) -> Callable[[], None]:
+        self._handlers.add(handler)
+
+        def unsubscribe() -> None:
+            self._handlers.discard(handler)
+
+        return unsubscribe
+
+    def close(self) -> None:
+        self._closed = True
+        self._handlers.clear()
+
+    def serve(self) -> None:
+        """Read and dispatch frames line-by-line until ``input`` reaches EOF."""
+        for raw in self._input:
+            if self._closed:
+                break
+            self._dispatch_line(raw)
+
+    def _dispatch_line(self, raw: bytes) -> None:
+        # Strip the trailing newline (and a possible CR from a CRLF transport).
+        line = raw.decode("utf-8").rstrip("\r\n")
+        if not line:
+            return  # ignore blank lines
+        try:
+            frame = decode_frame(line)
+        except (ValueError, KeyError, json.JSONDecodeError) as exc:
+            if self._on_error is not None:
+                self._on_error(exc, line)
+            return
+        for handler in list(self._handlers):
+            handler(frame)
+
+
+def run_stdio_host(
+    service: AccessibilityService,
+    *,
+    config: dict[str, Any] | None = None,
+) -> None:
+    """Host ``service`` over the process's real stdin/stdout and block until EOF.
+
+    Builds a :class:`StdioChannel` on ``sys.stdin.buffer``/``sys.stdout.buffer``, wraps
+    the service in a :class:`ServiceHost` (so inbound ``lifecycle`` frames drive its
+    hooks and ``health``/``event`` frames flow back out), and runs the channel's
+    blocking serve loop. The reusable entrypoint for a ``python -m <service>`` module;
+    wiring a specific service's ``__main__`` is left to that service.
+    """
+    channel = StdioChannel()
+    ServiceHost(service, channel, config=config)
+    channel.serve()
+
+
 __all__ = [
     "LifecyclePhase",
     "EventFrame",
@@ -241,4 +330,6 @@ __all__ = [
     "Channel",
     "create_channel_pair",
     "ServiceHost",
+    "StdioChannel",
+    "run_stdio_host",
 ]
