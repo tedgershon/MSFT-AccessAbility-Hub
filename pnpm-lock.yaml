@@ -69,6 +69,9 @@ importers:
       '@aah/coordinator':
         specifier: workspace:*
         version: link:../../core/coordinator
+      '@aah/creative-studio':
+        specifier: workspace:*
+        version: link:../../services/creative-studio
       '@aah/ipc':
         specifier: workspace:*
         version: link:../../adapters/ipc
@@ -118,6 +121,16 @@ importers:
         version: link:../../core/contracts
 
   services/colorblind-contrast:
+    dependencies:
+      '@aah/contracts':
+        specifier: workspace:*
+        version: link:../../core/contracts
+    devDependencies:
+      '@aah/test-fixtures':
+        specifier: workspace:*
+        version: link:../../tests/fixtures
+
+  services/creative-studio:
     dependencies:
       '@aah/contracts':
         specifier: workspace:*

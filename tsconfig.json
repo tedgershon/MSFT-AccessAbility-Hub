@@ -1,6 +1,7 @@
 {
   "files": [],
   "references": [
+    { "path": "./services/creative-studio" },
     { "path": "./core/contracts" },
     { "path": "./core/kernel" },
     { "path": "./core/coordinator" },

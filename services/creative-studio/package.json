@@ -1,0 +1,26 @@
+{
+  "name": "@aah/creative-studio",
+  "version": "0.1.0",
+  "description": "Creative Studio — narrates creative-app state and automates workflows for blind / low-vision users.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "lint": "echo \"(lint runs from the repo root: pnpm lint)\""
+  },
+  "dependencies": {
+    "@aah/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@aah/test-fixtures": "workspace:*"
+  }
+}
