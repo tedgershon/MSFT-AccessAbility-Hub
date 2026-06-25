@@ -11,7 +11,16 @@ import tseslint from 'typescript-eslint';
  */
 export default tseslint.config(
   {
-    ignores: ['**/dist/**', '**/node_modules/**', 'templates/**', '**/*.d.ts'],
+    // Build output, dependencies, the Python virtualenv (bundles third-party JS),
+    // and token-placeholder templates are not lintable source.
+    ignores: [
+      '**/dist/**',
+      '**/dist-renderer/**',
+      '**/node_modules/**',
+      '**/.venv/**',
+      'templates/**',
+      '**/*.d.ts',
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
