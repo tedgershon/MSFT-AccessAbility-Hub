@@ -318,7 +318,7 @@ def run_stdio_host(
     ServiceHost(service, channel, config=config)
     channel.serve()
 
-
+ 
 __all__ = [
     "LifecyclePhase",
     "EventFrame",
