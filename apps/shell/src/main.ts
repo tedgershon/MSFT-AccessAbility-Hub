@@ -17,9 +17,11 @@
  */
 
 import { fileURLToPath } from 'node:url';
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, desktopCapturer } from 'electron';
 import type { EventTopic } from '@aah/contracts';
+import { DisplayCaptureAdapter, ElectronDisplayCaptureBackend } from '@aah/display-capture';
 import { createHub, type Hub } from './bootstrap.js';
+import { DisplayLuminancePublisher } from './display-luminance-publisher.js';
 import { IPC } from './ui/ipc-contract.js';
 import { overlayLayerToView, toServiceViews } from './ui/view-model.js';
 
@@ -35,6 +37,8 @@ const UI_TOPICS: EventTopic[] = [
 let hub: Hub | null = null;
 let win: BrowserWindow | null = null;
 let quitting = false;
+/** Emits `display/luminance` from the primary screen onto the hub bus. */
+let luminancePublisher: DisplayLuminancePublisher | null = null;
 
 /** Push the current service rows to the renderer. */
 function pushServices(target: BrowserWindow): void {
@@ -95,12 +99,71 @@ function wireActions(): void {
   });
 }
 
+/**
+ * Electron `desktopCapturer` bindings that yield RAW BGRA pixels (not an encoded
+ * PNG/JPEG) so per-pixel relative luminance can be computed downstream.
+ */
+function createDesktopCaptureBindings(): ConstructorParameters<
+  typeof ElectronDisplayCaptureBackend
+>[0] {
+  return {
+    async listSources() {
+      const sources = await desktopCapturer.getSources({
+        types: ['screen'],
+        thumbnailSize: { width: 320, height: 180 },
+      });
+      return sources.map((source) => ({
+        id: source.id,
+        name: source.name,
+        displayId: source.display_id || undefined,
+      }));
+    },
+    async captureFrame(sourceId: string) {
+      const sources = await desktopCapturer.getSources({
+        types: ['screen'],
+        thumbnailSize: { width: 320, height: 180 },
+      });
+      const source = sources.find((candidate) => candidate.id === sourceId);
+      if (!source) return null;
+      const image = source.thumbnail;
+      const size = image.getSize();
+      return {
+        capturedAtMs: Date.now(),
+        width: size.width,
+        height: size.height,
+        // Raw bitmap pixels keep this a real luminance source, not an opaque blob.
+        data: new Uint8Array(image.toBitmap()),
+      };
+    },
+  };
+}
+
+/** Begin publishing `display/luminance` from the primary screen onto the bus. */
+async function startLuminancePublisher(activeHub: Hub): Promise<void> {
+  const capture = new DisplayCaptureAdapter(
+    new ElectronDisplayCaptureBackend(createDesktopCaptureBindings()),
+  );
+  const sources = await capture.listSources();
+  const primary = sources[0];
+  if (!primary) {
+    console.warn('[shell] no display capture source; luminance publishing disabled');
+    return;
+  }
+  luminancePublisher = new DisplayLuminancePublisher(activeHub.kernel.bus, capture);
+  await luminancePublisher.start(primary.id, 250);
+}
+
 app
   .whenReady()
   .then(async () => {
     hub = await createHub();
     wireActions();
     createWindow(hub);
+
+    // Feed on-screen luminance to photosensitive guards over the bus.
+    void startLuminancePublisher(hub).catch((err: unknown) =>
+      console.error('[shell] luminance publisher failed to start:', err),
+    );
 
     // macOS convention: re-open a window when the dock icon is clicked.
     app.on('activate', () => {
@@ -119,8 +182,13 @@ app.on('before-quit', (event) => {
   quitting = true;
   const closing = hub;
   hub = null;
-  closing
-    .stop()
+  const publisher = luminancePublisher;
+  luminancePublisher = null;
+  Promise.resolve(publisher?.stop())
+    .catch((err: unknown) =>
+      console.error('[shell] error stopping luminance publisher:', err),
+    )
+    .then(() => closing.stop())
     .catch((err: unknown) => console.error('[shell] error during shutdown:', err))
     .finally(() => app.quit());
 });
