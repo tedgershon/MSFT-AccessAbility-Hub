@@ -6,26 +6,22 @@
  * whole UI every tick is noise, so each describer announces only what changed since
  * the last snapshot (Strategy pattern, mirroring `colorblind-contrast/strategies`).
  *
- * Imports nothing outside the contracts types so it stays trivially unit-testable.
+ * The mediated app's state snapshot comes from the `@aah/app-introspection`
+ * adapter; this module imports only that type so it stays trivially unit-testable.
  */
 
-/** A snapshot of the mediated creative app's salient state. */
-export interface StudioState {
-  /** App identity, e.g. `'image-editor'`. */
-  app: string;
-  /** Currently selected tool, e.g. `'brush'`. */
-  tool: string;
-  /** Human description of the current selection, or `null` if nothing is selected. */
-  selection: string | null;
-  /** Active layer / track name, or `null`. */
-  activeLayer: string | null;
-  /** Canvas zoom as a ratio (1 = 100%). */
-  zoom: number;
-  /** Open modal / dialog title, or `null` when none is open. */
-  dialog: string | null;
-  /** Transient status line (e.g. `'Exported export.png'`), or `null`. */
-  status: string | null;
-}
+import type { AppStateSnapshot } from '@aah/app-introspection';
+import { emptyAppState } from '@aah/app-introspection';
+
+/**
+ * The creative-app state snapshot the narrator diffs. Owned by the
+ * `@aah/app-introspection` adapter (the layer that surfaces it); re-exported here
+ * under the service's domain name for convenience.
+ */
+export type StudioState = AppStateSnapshot;
+
+/** A neutral starting state, so the first narration describes everything new. */
+export { emptyAppState as emptyState };
 
 /** Speech urgency. `assertive` interrupts; `polite` waits its turn. */
 export type Urgency = 'polite' | 'assertive';
@@ -36,19 +32,6 @@ export interface Utterance {
   source: string;
   text: string;
   urgency: Urgency;
-}
-
-/** A neutral starting state, so the first narration describes everything new. */
-export function emptyState(app = 'unknown'): StudioState {
-  return {
-    app,
-    tool: '',
-    selection: null,
-    activeLayer: null,
-    zoom: 1,
-    dialog: null,
-    status: null,
-  };
 }
 
 /** Describes one facet of a state transition. Returns an utterance or `null`. */

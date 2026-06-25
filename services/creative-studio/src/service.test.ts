@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { type ConfigStore, type EventPayload, type ServiceContext } from '@aah/contracts';
 import { CapturingBus } from '@aah/test-fixtures';
 import { CreativeStudioService } from './service.js';
-import { RecordingSpeechSink, ScriptedStudioChannel } from './channel.js';
+import { RecordingSpeechSink } from '@aah/audio-out';
+import { ScriptedAppStateChannel as ScriptedStudioChannel } from '@aah/app-introspection';
 import { emptyState, type StudioState } from './narration.js';
 
 function fakeConfig(initial: Record<string, unknown> = {}): ConfigStore {

@@ -17,8 +17,17 @@ export {
   type WorkflowResult,
 } from './workflow.js';
 export {
+  AudioOutAdapter,
   RecordingSpeechSink,
-  ScriptedStudioChannel,
+  WebSpeechBackend,
+  type SpeechBackend,
   type SpeechSink,
-  type StudioChannel,
-} from './channel.js';
+} from '@aah/audio-out';
+export {
+  AppIntrospectionAdapter,
+  ScriptedAppStateChannel,
+  emptyAppState,
+  type AppStateChannel,
+  type AppStateReader,
+  type AppStateSnapshot,
+} from '@aah/app-introspection';

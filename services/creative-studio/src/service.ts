@@ -13,8 +13,9 @@
  * service therefore also declares `cursor`/`keyboard` (shared).
  *
  * Composition over inheritance: narration lives in {@link Narrator}, automation in
- * {@link WorkflowRunner}, and the device seams behind {@link StudioChannel} /
- * {@link SpeechSink} — the service is just the lifecycle shell that wires them.
+ * {@link WorkflowRunner}, and the device seams are self-contained adapters
+ * (`@aah/app-introspection` for state, `@aah/audio-out` for speech) — the service is
+ * just the lifecycle shell that wires them and drives the narration poll loop.
  */
 
 import {
@@ -27,19 +28,20 @@ import {
   type ServiceContext,
   type ServiceMeta,
 } from '@aah/contracts';
-import {
-  RecordingSpeechSink,
-  ScriptedStudioChannel,
-  type SpeechSink,
-  type StudioChannel,
-} from './channel.js';
+import { ScriptedAppStateChannel, type AppStateChannel } from '@aah/app-introspection';
+import { RecordingSpeechSink, type SpeechSink } from '@aah/audio-out';
 import { emptyState, Narrator, type StudioState, type Utterance } from './narration.js';
 import { WorkflowRunner, type WorkflowResult } from './workflow.js';
 
+/** How often the enabled service polls the channel for fresh state, in ms. */
+const DEFAULT_POLL_INTERVAL_MS = 250;
+
 export interface CreativeStudioDeps {
-  channel?: StudioChannel;
+  channel?: AppStateChannel;
   speech?: SpeechSink;
   narrator?: Narrator;
+  /** Narration poll cadence while enabled (ms). Defaults to 250. */
+  pollIntervalMs?: number;
 }
 
 export class CreativeStudioService implements AccessibilityService {
@@ -58,20 +60,24 @@ export class CreativeStudioService implements AccessibilityService {
     cap('keyboard', 'shared'),
   ];
 
-  readonly #channel: StudioChannel;
+  readonly #channel: AppStateChannel;
   readonly #speech: SpeechSink;
   readonly #narrator: Narrator;
+  readonly #pollIntervalMs: number;
 
   #ctx?: ServiceContext;
   #runner?: WorkflowRunner;
   #active = false;
+  #poll?: ReturnType<typeof setInterval>;
   #prev: StudioState = emptyState();
 
   constructor(deps: CreativeStudioDeps = {}) {
-    // Defaults keep the service hardware-free until real adapters are wired in.
-    this.#channel = deps.channel ?? new ScriptedStudioChannel();
+    // Defaults keep the service hardware-free; real adapters inject a live
+    // AppIntrospectionAdapter + AudioOutAdapter(WebSpeechBackend).
+    this.#channel = deps.channel ?? new ScriptedAppStateChannel();
     this.#speech = deps.speech ?? new RecordingSpeechSink();
     this.#narrator = deps.narrator ?? new Narrator();
+    this.#pollIntervalMs = deps.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
   }
 
   async onLoad(ctx: ServiceContext): Promise<void> {
@@ -91,12 +97,20 @@ export class CreativeStudioService implements AccessibilityService {
     this.#speech.open();
     this.#prev = emptyState();
     this.#active = true;
+    // Drive narration: poll the channel on a cadence so the tile actually speaks in
+    // the assembled hub. `unref` so the loop never keeps the host process alive.
+    this.#poll = setInterval(() => this.tick(), this.#pollIntervalMs);
+    (this.#poll as unknown as { unref?: () => void }).unref?.();
   }
 
   async onDisable(): Promise<void> {
     // Release the commandChannel + audioOut leases (rule 5 generalised: release
-    // every lease on disable), even if enable half-failed.
+    // every lease on disable), even if enable half-failed, and stop the poll loop.
     this.#active = false;
+    if (this.#poll) {
+      clearInterval(this.#poll);
+      this.#poll = undefined;
+    }
     this.#channel.close();
     this.#speech.close();
   }
@@ -111,7 +125,7 @@ export class CreativeStudioService implements AccessibilityService {
    * a method so tests can step it deterministically. Returns what was spoken.
    */
   tick(): Utterance[] {
-    if (!this.#active) return [];
+    if (!this.#active || !this.#channel.isOpen) return [];
     const next = this.#channel.poll();
     if (!next) return [];
     const utterances = this.#narrator.narrate(this.#prev, next);
@@ -140,6 +154,6 @@ export class CreativeStudioService implements AccessibilityService {
   }
 
   #say(utterance: Utterance): void {
-    if (this.#speech.isOpen) this.#speech.speak(utterance);
+    if (this.#speech.isOpen) this.#speech.speak(utterance.text, utterance.urgency === 'assertive');
   }
 }
