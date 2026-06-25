@@ -6,6 +6,7 @@ This is a skeleton that validates end-to-end event wiring before advanced CV.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from time import time_ns
 from typing import Any
@@ -30,6 +31,7 @@ class GazeCorrelationService(AccessibilityService):
         self._latest_display_ref: dict[str, Any] | None = None
         self._latest_camera_gaze: dict[str, Any] | None = None
         self._calibration_samples: list[CalibrationSample] = []
+        self._unsubscribes: list[Callable[[], None]] = []
         self._x_scale = 1.0
         self._x_offset = 0.0
         self._y_scale = 1.0
@@ -37,6 +39,7 @@ class GazeCorrelationService(AccessibilityService):
 
     async def on_load(self, ctx: ServiceContext) -> None:
         self._ctx = ctx
+        self._subscribe_to_bus(ctx)
 
     async def on_enable(self) -> None:
         self._active = True
@@ -47,6 +50,9 @@ class GazeCorrelationService(AccessibilityService):
         self._active = False
 
     async def on_unload(self) -> None:
+        for unsubscribe in self._unsubscribes:
+            unsubscribe()
+        self._unsubscribes.clear()
         self._ctx = None
         self._latest_camera_ref = None
         self._latest_display_ref = None
@@ -55,6 +61,19 @@ class GazeCorrelationService(AccessibilityService):
 
     def health_check(self) -> HealthStatus:
         return healthy("correlating" if self._active else "idle")
+
+    def _subscribe_to_bus(self, ctx: ServiceContext) -> None:
+        """Wire ingest handlers to the live event bus.
+
+        The kernel bus client mirrors the TS ``EventBus.on(topic, handler)`` shape,
+        returning an unsubscribe callable. Subscribing is optional so emit-only test
+        stubs (which omit ``on``) keep working; real runtime ingestion happens here.
+        """
+        subscribe = getattr(ctx.bus, "on", None)
+        if not callable(subscribe):
+            return
+        self._unsubscribes.append(subscribe("camera/frame-ref", self.ingest_camera_frame_ref))
+        self._unsubscribes.append(subscribe("display/frame-ref", self.ingest_display_frame_ref))
 
     def ingest_camera_frame_ref(self, payload: dict[str, Any]) -> None:
         self._latest_camera_ref = payload
