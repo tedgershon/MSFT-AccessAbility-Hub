@@ -47,6 +47,23 @@ export interface InputProfile {
   clickHoldMs: number;
   /** Suppress repeated keydown events firing within this window (debounce). */
   keyRepeatFilterMs: number;
+  /**
+   * Angle Mouse minimum gain multiplier in `(0, 1]` (Wobbrock et al. 2009). The
+   * pointer is slowed toward this floor when motion is erratic and kept near `1`
+   * when motion is ballistic; `1` disables dynamic gain.
+   */
+  angleGainFloor: number;
+  /**
+   * Steady Clicks slip tolerance in pixels (Trewin et al. 2006). A press whose
+   * pointer drifts farther than this during the click is rejected as a slip; `0`
+   * (or less) disables slip rejection.
+   */
+  clickSlipMaxPx: number;
+  /**
+   * Enhanced Area Cursor activation radius in pixels (Findlater et al. 2010). The
+   * effective target/selection area around the pointer; `0` is a point cursor.
+   */
+  areaCursorRadiusPx: number;
 }
 
 /**

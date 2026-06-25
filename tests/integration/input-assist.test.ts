@@ -20,7 +20,15 @@ import { InMemoryEventBus } from '../../core/kernel/src/event-bus.js';
 import { PointingMagnifierService } from '../../services/pointing-magnifier/src/service.js';
 import { InputShaper } from '../../services/input-personalization/src/shaper.js';
 
-const TREMOR = { id: 'tremor', dwellMs: 400, clickHoldMs: 250, keyRepeatFilterMs: 120 };
+const TREMOR = {
+  id: 'tremor',
+  dwellMs: 400,
+  clickHoldMs: 250,
+  keyRepeatFilterMs: 120,
+  angleGainFloor: 0.4,
+  clickSlipMaxPx: 12,
+  areaCursorRadiusPx: 18,
+};
 
 function fakeConfig(initial: Record<string, unknown> = {}): ConfigStore {
   const store = new Map<string, unknown>(Object.entries(initial));

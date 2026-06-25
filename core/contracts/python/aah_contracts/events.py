@@ -55,13 +55,19 @@ class InputProfile:
     """A per-user input-remapping profile for motor/dexterity needs.
 
     Mirror of the TS ``InputProfile`` carried as the ``input/profile`` payload. All
-    durations are milliseconds; ``0`` disables that shaping stage.
+    durations are milliseconds; ``0`` disables that shaping stage. ``angle_gain_floor``
+    is the Angle Mouse minimum gain (``1`` disables); ``click_slip_max_px`` is the
+    Steady Clicks slip tolerance (``<= 0`` disables); ``area_cursor_radius_px`` is the
+    Enhanced Area Cursor activation radius (``0`` is a point cursor).
     """
 
     id: str
     dwell_ms: int
     click_hold_ms: int
     key_repeat_filter_ms: int
+    angle_gain_floor: float
+    click_slip_max_px: float
+    area_cursor_radius_px: float
 
 
 INPUT_PROFILE = "input/profile"

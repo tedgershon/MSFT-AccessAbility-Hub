@@ -56,6 +56,9 @@ describe('InputPersonalizationService', () => {
       dwellMs: 0,
       clickHoldMs: 0,
       keyRepeatFilterMs: 0,
+      angleGainFloor: 1,
+      clickSlipMaxPx: 0,
+      areaCursorRadiusPx: 0,
     });
   });
 
@@ -68,6 +71,9 @@ describe('InputPersonalizationService', () => {
       dwellMs: 400,
       clickHoldMs: 250,
       keyRepeatFilterMs: 120,
+      angleGainFloor: 0.4,
+      clickSlipMaxPx: 12,
+      areaCursorRadiusPx: 18,
     });
   });
 
@@ -107,7 +113,15 @@ describe('InputPersonalizationService', () => {
     expect(events).toHaveLength(1);
     expect(events[0]).toEqual({
       source: 'input-personalization',
-      profile: { id: 'tremor', dwellMs: 400, clickHoldMs: 250, keyRepeatFilterMs: 120 },
+      profile: {
+        id: 'tremor',
+        dwellMs: 400,
+        clickHoldMs: 250,
+        keyRepeatFilterMs: 120,
+        angleGainFloor: 0.4,
+        clickSlipMaxPx: 12,
+        areaCursorRadiusPx: 18,
+      },
     });
   });
 

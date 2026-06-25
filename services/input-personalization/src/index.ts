@@ -5,5 +5,6 @@ export {
   DEFAULT_DWELL_RADIUS_PX,
   type PointerSample,
   type DwellClick,
+  type SteadyClick,
   type InputShaperOptions,
 } from './shaper.js';

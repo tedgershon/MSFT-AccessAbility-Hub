@@ -36,12 +36,42 @@ export interface InputProfile {
   clickHoldMs: number;
   /** Suppress repeated keydown events firing within this window (debounce). */
   keyRepeatFilterMs: number;
+  /** Angle Mouse minimum gain in `(0, 1]`; `1` disables dynamic gain. */
+  angleGainFloor: number;
+  /** Steady Clicks slip tolerance in px; `<= 0` disables slip rejection. */
+  clickSlipMaxPx: number;
+  /** Enhanced Area Cursor activation radius in px; `0` is a point cursor. */
+  areaCursorRadiusPx: number;
 }
 
 const PROFILES: Record<InputProfileId, InputProfile> = {
-  default: { id: 'default', dwellMs: 0, clickHoldMs: 0, keyRepeatFilterMs: 0 },
-  tremor: { id: 'tremor', dwellMs: 400, clickHoldMs: 250, keyRepeatFilterMs: 120 },
-  'switch-access': { id: 'switch-access', dwellMs: 800, clickHoldMs: 500, keyRepeatFilterMs: 200 },
+  default: {
+    id: 'default',
+    dwellMs: 0,
+    clickHoldMs: 0,
+    keyRepeatFilterMs: 0,
+    angleGainFloor: 1,
+    clickSlipMaxPx: 0,
+    areaCursorRadiusPx: 0,
+  },
+  tremor: {
+    id: 'tremor',
+    dwellMs: 400,
+    clickHoldMs: 250,
+    keyRepeatFilterMs: 120,
+    angleGainFloor: 0.4,
+    clickSlipMaxPx: 12,
+    areaCursorRadiusPx: 18,
+  },
+  'switch-access': {
+    id: 'switch-access',
+    dwellMs: 800,
+    clickHoldMs: 500,
+    keyRepeatFilterMs: 200,
+    angleGainFloor: 0.3,
+    clickSlipMaxPx: 20,
+    areaCursorRadiusPx: 28,
+  },
 };
 
 /** Profile ids selectable at runtime / via config, in control-panel order. */
