@@ -51,3 +51,8 @@ tasks:
     desc: Run persistent camera test (preview mode by default)
     cmds:
       - uv run python scripts/camera-test.py {{.CLI_ARGS}}
+
+  gaze:demo:
+    desc: "Live gaze demo: calibrate, then show on-screen gaze (needs the [gaze] extra)"
+    cmds:
+      - uv run python scripts/gaze-demo.py {{.CLI_ARGS}}
