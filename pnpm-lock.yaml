@@ -47,6 +47,12 @@ importers:
         specifier: ^20.0.0
         version: 20.19.43
 
+  adapters/display-capture:
+    dependencies:
+      '@aah/contracts':
+        specifier: workspace:*
+        version: link:../../core/contracts
+
   adapters/input-injection:
     dependencies:
       '@aah/contracts':
@@ -83,6 +89,12 @@ importers:
       '@aah/creative-studio':
         specifier: workspace:*
         version: link:../../services/creative-studio
+      '@aah/display-capture':
+        specifier: workspace:*
+        version: link:../../adapters/display-capture
+      '@aah/flash-filter':
+        specifier: workspace:*
+        version: link:../../services/flash-filter
       '@aah/ipc':
         specifier: workspace:*
         version: link:../../adapters/ipc
@@ -156,6 +168,16 @@ importers:
       '@aah/audio-out':
         specifier: workspace:*
         version: link:../../adapters/audio-out
+      '@aah/contracts':
+        specifier: workspace:*
+        version: link:../../core/contracts
+    devDependencies:
+      '@aah/test-fixtures':
+        specifier: workspace:*
+        version: link:../../tests/fixtures
+
+  services/flash-filter:
+    dependencies:
       '@aah/contracts':
         specifier: workspace:*
         version: link:../../core/contracts

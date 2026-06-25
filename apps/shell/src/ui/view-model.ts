@@ -56,6 +56,14 @@ const COLOR_CORRECTION_FILTERS: Record<string, string> = {
 /** Fallback filter when the strategy is missing or unrecognised. */
 const DEFAULT_COLOR_CORRECTION_FILTER = 'contrast(1.05)';
 
+/** Read a 0..1 number param, clamping out-of-range / non-numeric values to 0. */
+function clamp01Param(value: unknown): number {
+  if (typeof value !== 'number' || Number.isNaN(value)) return 0;
+  if (value < 0) return 0;
+  if (value > 1) return 1;
+  return value;
+}
+
 /** A presentation hint the renderer uses to paint a layer. */
 export interface OverlayDescriptor {
   kind: string;
@@ -72,6 +80,7 @@ export interface OverlayDescriptor {
  * Known kinds:
  * - `color-correction` -> full-window CSS `filter` derived from `params.strategy`.
  * - `caption` -> label taken from `params.text`.
+ * - `flash-guard` -> full-window black dim whose alpha tracks `params.intensity`.
  */
 export function describeOverlayLayer(view: OverlayLayerView): OverlayDescriptor {
   switch (view.kind) {
@@ -89,6 +98,22 @@ export function describeOverlayLayer(view: OverlayLayerView): OverlayDescriptor 
     case 'caption': {
       const text = typeof view.params?.text === 'string' ? view.params.text : '';
       return { kind: view.kind, label: text };
+    }
+    case 'flash-guard': {
+      // The guard's protective dim: a full-window black layer whose opacity rises
+      // with the detected flash intensity (0 = transparent, 1 = full blackout).
+      const intensity = clamp01Param(view.params?.intensity);
+      const fps =
+        typeof view.params?.flashesPerSecond === 'number' ? view.params.flashesPerSecond : 0;
+      const label =
+        intensity > 0
+          ? `Flash guard (dim ${Math.round(intensity * 100)}%${fps ? `, ${fps} flashes/s` : ''})`
+          : 'Flash guard (monitoring)';
+      return {
+        kind: view.kind,
+        label,
+        style: { backgroundColor: `rgba(0, 0, 0, ${intensity.toFixed(3)})` },
+      };
     }
     default:
       return { kind: view.kind, label: view.kind };

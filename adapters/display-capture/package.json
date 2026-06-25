@@ -1,0 +1,17 @@
+{
+  "name": "@aah/display-capture",
+  "version": "0.1.0",
+  "description": "Adapter: wraps cross-platform display capture behind a narrow interface.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "lint": "echo \"(lint placeholder)\""
+  },
+  "dependencies": {
+    "@aah/contracts": "workspace:*"
+  }
+}

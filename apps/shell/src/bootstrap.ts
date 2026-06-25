@@ -12,6 +12,7 @@
 import { Kernel } from '@aah/kernel';
 import { ModeCoordinator } from '@aah/coordinator';
 import { ColorblindContrastService } from '@aah/colorblind-contrast';
+import { FlashFilterService } from '@aah/flash-filter';
 import { CreativeStudioService } from '@aah/creative-studio';
 import type { Resource } from '@aah/contracts';
 import { OverlaySurface } from './overlay-surface.js';
@@ -89,6 +90,7 @@ export async function createHub(opts: CreateHubOptions = {}): Promise<Hub> {
 
   // In-shell TS services register here. New services slot in without kernel edits.
   await kernel.install(new ColorblindContrastService());
+  await kernel.install(new FlashFilterService());
   await kernel.install(new CreativeStudioService());
 
   // ClawPilot is INTENTIONALLY not installed here — the hub stays independent of

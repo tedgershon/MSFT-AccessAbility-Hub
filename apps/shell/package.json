@@ -16,8 +16,10 @@
     "@aah/coordinator": "workspace:*",
     "@aah/kernel": "workspace:*",
     "@aah/colorblind-contrast": "workspace:*",
-    "@aah/ipc": "workspace:*",
-    "@aah/creative-studio": "workspace:*"
+    "@aah/display-capture": "workspace:*",
+    "@aah/flash-filter": "workspace:*",
+    "@aah/creative-studio": "workspace:*",
+    "@aah/ipc": "workspace:*"
   },
   "devDependencies": {
     "electron": "^30.0.0"
