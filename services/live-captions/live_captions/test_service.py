@@ -122,7 +122,7 @@ def test_enable_attaches_caption_layer_disable_detaches_both() -> None:
     assert len(attaches) == 1
     assert attaches[0]["id"] == "live-captions:caption"
     assert attaches[0]["ownerId"] == "live-captions"
-    assert attaches[0]["kind"] == "live-caption"
+    assert attaches[0]["kind"] == "caption"
 
     _run(service.on_disable())
     detach_ids = {p["id"] for p in bus.payloads(OVERLAY_DETACH)}

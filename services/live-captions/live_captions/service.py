@@ -136,7 +136,7 @@ class LiveCaptionsService(AccessibilityService):
             {
                 "id": self._caption_layer_id,
                 "ownerId": ctx.self_id,
-                "kind": "live-caption",
+                "kind": "caption",
                 "params": {"text": "", "language": self._caption_language},
             },
         )
@@ -227,7 +227,7 @@ class LiveCaptionsService(AccessibilityService):
             {
                 "id": self._caption_layer_id,
                 "ownerId": ctx.self_id,
-                "kind": "live-caption",
+                "kind": "caption",
                 "params": {
                     "text": rendered,
                     "language": self._caption_language,

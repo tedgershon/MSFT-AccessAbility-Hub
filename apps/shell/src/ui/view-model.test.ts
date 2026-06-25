@@ -105,6 +105,17 @@ describe('describeOverlayLayer', () => {
     expect(d).toEqual({ kind: 'caption', label: 'live caption' });
   });
 
+  it('uses params.label as the label for a sound-alert layer', () => {
+    const d = describeOverlayLayer({
+      id: 's1',
+      ownerId: 'svc',
+      kind: 'sound-alert',
+      params: { label: 'doorbell', confidence: 0.9 },
+    });
+
+    expect(d).toEqual({ kind: 'sound-alert', label: 'Sound: doorbell' });
+  });
+
   it('falls back to a labelled chip for an unknown kind', () => {
     const d = describeOverlayLayer({ id: 'x1', ownerId: 'svc', kind: 'mystery' });
 

@@ -72,6 +72,7 @@ export interface OverlayDescriptor {
  * Known kinds:
  * - `color-correction` -> full-window CSS `filter` derived from `params.strategy`.
  * - `caption` -> label taken from `params.text`.
+ * - `sound-alert` -> label taken from `params.label` (non-speech sound cue).
  */
 export function describeOverlayLayer(view: OverlayLayerView): OverlayDescriptor {
   switch (view.kind) {
@@ -89,6 +90,10 @@ export function describeOverlayLayer(view: OverlayLayerView): OverlayDescriptor 
     case 'caption': {
       const text = typeof view.params?.text === 'string' ? view.params.text : '';
       return { kind: view.kind, label: text };
+    }
+    case 'sound-alert': {
+      const sound = typeof view.params?.label === 'string' ? view.params.label : 'sound';
+      return { kind: view.kind, label: `Sound: ${sound}` };
     }
     default:
       return { kind: view.kind, label: view.kind };
