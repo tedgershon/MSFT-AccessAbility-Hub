@@ -27,6 +27,12 @@ export const IPC = {
   enable: 'hub:enable',
   /** renderer -> main: request to disable a service by id. */
   disable: 'hub:disable',
+  /** renderer -> main: request a description of what is currently on screen. */
+  describe: 'hub:describe',
+  /** main -> renderer: speak some text via the Web Speech API. Payload: {@link SpeakRequest}. */
+  speak: 'hub:speak',
+  /** main -> renderer: cancel any in-progress speech. */
+  speakCancel: 'hub:speak-cancel',
 } as const;
 
 /** Presentation-ready view of a service's health. */
@@ -55,6 +61,14 @@ export interface OverlayLayerView {
   params?: Record<string, unknown>;
 }
 
+/** A request to voice some text in the renderer via the Web Speech API. */
+export interface SpeakRequest {
+  text: string;
+  rate?: number;
+  pitch?: number;
+  voice?: string;
+}
+
 /**
  * The safe, typed API the preload script exposes on `window.hub` via
  * `contextBridge`. The renderer programs against this interface only.
@@ -68,4 +82,10 @@ export interface HubBridge {
   enable(id: string): Promise<void>;
   /** Ask the hub to disable a service. */
   disable(id: string): Promise<void>;
+  /** Ask the hub to describe what is currently on screen. */
+  describe(sourceId?: string): Promise<void>;
+  /** Subscribe to speak requests (text voiced via the Web Speech API). */
+  onSpeak(cb: (req: SpeakRequest) => void): void;
+  /** Subscribe to cancel-speech requests. */
+  onSpeakCancel(cb: () => void): void;
 }

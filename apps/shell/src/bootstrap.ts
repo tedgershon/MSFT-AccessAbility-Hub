@@ -12,7 +12,7 @@
 import { Kernel } from '@aah/kernel';
 import { ModeCoordinator } from '@aah/coordinator';
 import { ColorblindContrastService } from '@aah/colorblind-contrast';
-import type { Resource } from '@aah/contracts';
+import type { AccessibilityService, Resource } from '@aah/contracts';
 import { OverlaySurface } from './overlay-surface.js';
 import {
   installRemoteService,
@@ -61,6 +61,12 @@ export interface CreateHubOptions {
    */
   remoteServices?: RemoteServiceSpec[];
   /**
+   * Extra in-process TS services to install at boot. The Electron shell uses this to
+   * inject services that need shell-backed adapters (e.g. ArtInSight: screen capture
+   * + Web Speech TTS) without the headless bootstrap importing Electron.
+   */
+  services?: AccessibilityService[];
+  /**
    * Enable every registered service after `kernel.start()` so the hub boots with
    * services ACTIVE. Default `true`.
    */
@@ -68,7 +74,7 @@ export interface CreateHubOptions {
 }
 
 export async function createHub(opts: CreateHubOptions = {}): Promise<Hub> {
-  const { remoteServices = [], autoEnable = true } = opts;
+  const { remoteServices = [], services = [], autoEnable = true } = opts;
 
   const kernel = new Kernel();
   const coordinator = new ModeCoordinator(kernel.bus);
@@ -88,6 +94,12 @@ export async function createHub(opts: CreateHubOptions = {}): Promise<Hub> {
 
   // In-shell TS services register here. New services slot in without kernel edits.
   await kernel.install(new ColorblindContrastService());
+
+  // Extra in-process services injected by the host (e.g. the Electron shell wires
+  // ArtInSight with screen-capture + Web Speech adapters it can't build headless).
+  for (const service of services) {
+    await kernel.install(service);
+  }
 
   // ClawPilot is INTENTIONALLY not installed here — the hub stays independent of
   // the external agent. To opt in, a host would install the service and set config

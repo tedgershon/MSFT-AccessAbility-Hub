@@ -71,6 +71,9 @@ importers:
 
   apps/shell:
     dependencies:
+      '@aah/artinsight':
+        specifier: workspace:*
+        version: link:../../services/artinsight
       '@aah/colorblind-contrast':
         specifier: workspace:*
         version: link:../../services/colorblind-contrast
@@ -80,12 +83,18 @@ importers:
       '@aah/coordinator':
         specifier: workspace:*
         version: link:../../core/coordinator
+      '@aah/display-capture':
+        specifier: workspace:*
+        version: link:../../adapters/display-capture
       '@aah/ipc':
         specifier: workspace:*
         version: link:../../adapters/ipc
       '@aah/kernel':
         specifier: workspace:*
         version: link:../../core/kernel
+      '@aah/tts':
+        specifier: workspace:*
+        version: link:../../adapters/tts
     devDependencies:
       electron:
         specifier: ^30.0.0

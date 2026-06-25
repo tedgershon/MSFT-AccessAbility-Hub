@@ -175,3 +175,31 @@ body {
   font-size: 0.8rem;
   color: var(--muted);
 }
+
+.describe-button {
+  appearance: none;
+  cursor: pointer;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: var(--accent, #2b6cb0);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.describe-button:hover {
+  filter: brightness(1.08);
+}
+
+.describe-button:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.describe-status {
+  margin-top: 0.6rem;
+  min-height: 1.2rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}

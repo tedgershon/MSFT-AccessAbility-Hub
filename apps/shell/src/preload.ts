@@ -10,7 +10,13 @@
  */
 
 import { contextBridge, ipcRenderer } from 'electron';
-import { IPC, type HubBridge, type OverlayLayerView, type ServiceView } from './ui/ipc-contract.js';
+import {
+  IPC,
+  type HubBridge,
+  type OverlayLayerView,
+  type ServiceView,
+  type SpeakRequest,
+} from './ui/ipc-contract.js';
 
 const api: HubBridge = {
   onServices(cb) {
@@ -24,6 +30,15 @@ const api: HubBridge = {
   },
   disable(id) {
     return ipcRenderer.invoke(IPC.disable, id) as Promise<void>;
+  },
+  describe(sourceId) {
+    return ipcRenderer.invoke(IPC.describe, sourceId) as Promise<void>;
+  },
+  onSpeak(cb) {
+    ipcRenderer.on(IPC.speak, (_event, req: SpeakRequest) => cb(req));
+  },
+  onSpeakCancel(cb) {
+    ipcRenderer.on(IPC.speakCancel, () => cb());
   },
 };
 
