@@ -43,3 +43,14 @@ select = ["E", "F", "I", "UP", "B"]
 [tool.pytest.ini_options]
 testpaths = ["tests", "core", "services", "adapters"]
 python_files = ["test_*.py", "*_test.py"]
+# Make plain `pytest` work without a manual PYTHONPATH: add every Python package
+# source root to sys.path so cross-package imports resolve during collection.
+pythonpath = [
+  "core/contracts/python",
+  "services/eye-tracking",
+  "services/gaze-correlation",
+  "services/voice-commands",
+  "services/hand-signals",
+  "adapters/camera",
+  "adapters/audio",
+]
