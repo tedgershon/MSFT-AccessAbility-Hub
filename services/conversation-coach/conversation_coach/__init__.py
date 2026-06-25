@@ -35,6 +35,7 @@ from aah_contracts import (
     AccessibilityService,
     Capability,
     HealthStatus,
+    OverlayLayer,
     ServiceContext,
     ServiceMeta,
     degraded,
@@ -106,7 +107,7 @@ class ConversationCoachService(AccessibilityService):
         self._stop_worker()
         self._perception.close()
         if ctx is not None and self._mounted:
-            ctx.bus.emit(OVERLAY_DETACH, {"id": self.LAYER_ID, "ownerId": ctx.self_id})
+            ctx.bus.emit(OVERLAY_DETACH, {"id": self.LAYER_ID, "owner_id": ctx.self_id})
         self._mounted = False
         self._last = []
 
@@ -162,26 +163,27 @@ class ConversationCoachService(AccessibilityService):
             ctx.bus.emit(OVERLAY_UPDATE, self._overlay_layer(prompts))
         return prompts
 
-    def _overlay_layer(self, prompts: list[RepairPrompt]) -> dict[str, object]:
-        """Build the overlay-layer wire payload.
+    def _overlay_layer(self, prompts: list[RepairPrompt]) -> OverlayLayer:
+        """Build the shared :class:`OverlayLayer` contract for the prompt panel.
 
-        A plain JSON-serializable dict using the TS ``OverlayLayer`` wire shape
-        (camelCase ``ownerId``), so it survives ``json.dumps`` across the IPC seam and
-        the host-side overlay surface recognises it. ``self_id`` is non-None whenever
-        this is called (only from enabled paths that checked ``ctx``).
+        Emits the contract dataclass (snake_case ``owner_id``) rather than a hand-rolled
+        camelCase dict: the IPC seam serializer converts it to the TS ``ownerId`` wire
+        shape, so the shared type stays the single source of truth (issue #57).
+        ``self_id`` is non-None whenever this is called (only from enabled paths that
+        checked ``ctx``).
         """
 
         assert self._ctx is not None
-        return {
-            "id": self.LAYER_ID,
-            "ownerId": self._ctx.self_id,
-            "kind": "coach-prompts",
-            "params": {
+        return OverlayLayer(
+            id=self.LAYER_ID,
+            owner_id=self._ctx.self_id,
+            kind="coach-prompts",
+            params={
                 "prompts": [
                     {"key": p.key, "text": p.text, "severity": p.severity} for p in prompts
                 ]
             },
-        }
+        )
 
     @staticmethod
     def _prompt_keys(prompts: list[RepairPrompt]) -> list[str]:
