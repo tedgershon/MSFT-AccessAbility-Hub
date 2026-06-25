@@ -30,6 +30,7 @@ The top level mirrors the architecture diagram: each layer is a sibling folder.
   /eye-tracking            Python
   /voice-commands          Python
   /hand-signals            Python + FastAPI
+  /live-captions           Python (mic -> STT -> caption overlay)
 /adapters                  wrap OpenCV / ClawPilot / camera / audio / input
   /camera /audio /input-injection /clawpilotMCP
 /tests

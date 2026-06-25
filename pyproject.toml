@@ -16,6 +16,7 @@ members = [
   "services/eye-tracking",
   "services/voice-commands",
   "services/hand-signals",
+  "services/live-captions",
   "adapters/camera",
   "adapters/audio",
   "adapters/ipc/python",
