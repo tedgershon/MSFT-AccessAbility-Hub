@@ -103,10 +103,12 @@ describe('CreativeStudioService', () => {
     expect(result.ran).toBe(true);
     const emitted = intents(bus);
     expect(emitted).toHaveLength(2);
+    // The originator is on the event's top-level `source`; the payload is the
+    // pure action data, with no redundant/hard-coded source key.
     expect(emitted[0]).toEqual({
       source: 'creative-studio',
       kind: 'keyboard',
-      payload: { keys: 'Ctrl+Shift+E', source: 'creative-studio' },
+      payload: { keys: 'Ctrl+Shift+E' },
     });
   });
 

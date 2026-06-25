@@ -83,7 +83,9 @@ export class WorkflowRunner {
       this.ctx.audit(`workflow start ${id}`);
       for (const step of workflow.steps) {
         this.ctx.audit(`step ${step.describe}`);
-        this.ctx.emit(step.kind, { ...step.payload, source: 'creative-studio' });
+        // The intent's originator is carried by the event's top-level `source`
+        // field (set by the service); the payload stays the pure action data.
+        this.ctx.emit(step.kind, { ...step.payload });
       }
       this.ctx.audit(`workflow done ${id}`);
       return { id, ran: true, steps: workflow.steps.length };

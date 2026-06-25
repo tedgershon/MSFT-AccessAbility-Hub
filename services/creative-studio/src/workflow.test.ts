@@ -38,7 +38,7 @@ describe('WorkflowRunner', () => {
     expect(emitted).toHaveLength(2);
     expect(emitted[0]).toEqual({
       kind: 'keyboard',
-      payload: { keys: 'Ctrl+Shift+E', source: 'creative-studio' },
+      payload: { keys: 'Ctrl+Shift+E' },
     });
   });
 
