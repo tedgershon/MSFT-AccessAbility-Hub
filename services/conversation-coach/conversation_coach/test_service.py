@@ -1,0 +1,208 @@
+"""Lifecycle + behaviour tests for the Conversation Coach service.
+
+Hardware-free: a :class:`ScriptedPerception` stands in for the camera/mic and the
+root ``conftest.py`` ``CapturingBus`` records emitted overlay events. Async hooks
+are driven with ``asyncio.run`` so no pytest-asyncio plugin is required.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import json
+import time
+
+from aah_contracts import (
+    OVERLAY_ATTACH,
+    OVERLAY_DETACH,
+    OVERLAY_UPDATE,
+    ServiceContext,
+)
+
+from conversation_coach import ConversationCoachService
+from conversation_coach.coaching import ConversationSignal
+from conversation_coach.perception import ScriptedPerception
+
+
+def _ctx(bus) -> ServiceContext:
+    return ServiceContext(self_id="conversation-coach", bus=bus, config={})
+
+
+def _payloads(bus, topic):
+    return [p for t, p in bus.emitted if t == topic]
+
+
+def _assert_ipc_serializable(payload) -> None:
+    """Overlay payloads cross the IPC seam via ``json.dumps`` — lock that in.
+
+    A plain JSON-serializable dict (not an ``OverlayLayer`` dataclass) using the TS
+    wire shape (camelCase ``ownerId``) is required, or the real transport crashes.
+    """
+
+    assert isinstance(payload, dict)
+    json.dumps(payload)  # raises if a non-serializable dataclass slips back in
+
+
+def test_requires_manifest_is_observe_only(capturing_bus) -> None:
+    svc = ConversationCoachService()
+    by_resource = {c.resource: c.mode for c in svc.requires}
+    assert by_resource == {
+        "camera": "shared",
+        "audioIn": "shared",
+        "displayOverlay": "shared",
+    }
+
+
+def test_enable_acquires_lease_and_mounts_overlay(capturing_bus) -> None:
+    perception = ScriptedPerception()
+    svc = ConversationCoachService(perception=perception, auto_drive=False)
+
+    asyncio.run(svc.on_load(_ctx(capturing_bus)))
+    asyncio.run(svc.on_enable())
+
+    assert perception.is_open is True
+    assert perception.open_count == 1
+    attaches = _payloads(capturing_bus, OVERLAY_ATTACH)
+    assert len(attaches) == 1
+    # Must be the TS/IPC wire shape: a JSON-serializable dict with camelCase ownerId.
+    _assert_ipc_serializable(attaches[0])
+    assert attaches[0] == {
+        "id": "conversation-coach:prompts",
+        "ownerId": "conversation-coach",
+        "kind": "coach-prompts",
+        "params": {"prompts": []},
+    }
+
+
+def test_disable_releases_lease_and_detaches_overlay(capturing_bus) -> None:
+    perception = ScriptedPerception()
+    svc = ConversationCoachService(perception=perception, auto_drive=False)
+
+    asyncio.run(svc.on_load(_ctx(capturing_bus)))
+    asyncio.run(svc.on_enable())
+    asyncio.run(svc.on_disable())
+
+    # Rule 5: camera/mic lease released on disable.
+    assert perception.is_open is False
+    assert perception.close_count == 1
+    detaches = _payloads(capturing_bus, OVERLAY_DETACH)
+    assert len(detaches) == 1
+    _assert_ipc_serializable(detaches[0])
+    # camelCase ownerId so the host overlay surface can scope the detach by owner.
+    assert detaches[0] == {"id": "conversation-coach:prompts", "ownerId": "conversation-coach"}
+
+
+def test_tick_surfaces_prompt_via_overlay_update(capturing_bus) -> None:
+    perception = ScriptedPerception([ConversationSignal(user_speaking_ratio=0.95)])
+    svc = ConversationCoachService(perception=perception, auto_drive=False)
+
+    asyncio.run(svc.on_load(_ctx(capturing_bus)))
+    asyncio.run(svc.on_enable())
+    prompts = svc.tick()
+
+    assert [p.key for p in prompts] == ["monologue"]
+    updates = _payloads(capturing_bus, OVERLAY_UPDATE)
+    assert len(updates) == 1
+    _assert_ipc_serializable(updates[0])
+    assert updates[0]["ownerId"] == "conversation-coach"
+    assert updates[0]["params"]["prompts"][0]["key"] == "monologue"
+
+
+def test_tick_clears_overlay_when_prompt_stops_firing(capturing_bus) -> None:
+    # Same cue twice: it fires on window 1, then the throttle mutes it on window 2.
+    # The overlay must clear to empty rather than leaving the prompt stuck on screen.
+    perception = ScriptedPerception(
+        [
+            ConversationSignal(user_speaking_ratio=0.95),
+            ConversationSignal(user_speaking_ratio=0.95),
+        ]
+    )
+    svc = ConversationCoachService(perception=perception, auto_drive=False)
+
+    asyncio.run(svc.on_load(_ctx(capturing_bus)))
+    asyncio.run(svc.on_enable())
+    assert [p.key for p in svc.tick()] == ["monologue"]
+    assert svc.tick() == []  # throttled this window
+
+    updates = _payloads(capturing_bus, OVERLAY_UPDATE)
+    assert len(updates) == 2
+    assert updates[0]["params"]["prompts"][0]["key"] == "monologue"
+    assert updates[1]["params"]["prompts"] == []  # cleared
+
+
+def test_tick_on_quiet_signal_emits_nothing(capturing_bus) -> None:
+    perception = ScriptedPerception([ConversationSignal()])
+    svc = ConversationCoachService(perception=perception, auto_drive=False)
+
+    asyncio.run(svc.on_load(_ctx(capturing_bus)))
+    asyncio.run(svc.on_enable())
+    before = sum(1 for t, _ in capturing_bus.emitted if t == OVERLAY_UPDATE)
+    assert svc.tick() == []
+    after = sum(1 for t, _ in capturing_bus.emitted if t == OVERLAY_UPDATE)
+    assert before == after == 0
+
+
+def test_tick_when_disabled_is_a_noop(capturing_bus) -> None:
+    perception = ScriptedPerception([ConversationSignal(user_speaking_ratio=0.95)])
+    svc = ConversationCoachService(perception=perception, auto_drive=False)
+    asyncio.run(svc.on_load(_ctx(capturing_bus)))
+    # Not enabled.
+    assert svc.tick() == []
+
+
+def test_health_check_tracks_state(capturing_bus) -> None:
+    perception = ScriptedPerception()
+    svc = ConversationCoachService(perception=perception, auto_drive=False)
+
+    assert svc.health_check().state == "degraded"  # not loaded
+
+    asyncio.run(svc.on_load(_ctx(capturing_bus)))
+    assert svc.health_check().state == "healthy"
+    assert svc.health_check().detail == "idle"
+
+    asyncio.run(svc.on_enable())
+    assert svc.health_check().detail == "coaching"
+
+    asyncio.run(svc.on_disable())
+    assert svc.health_check().detail == "idle"
+
+
+def test_health_check_unhealthy_if_lease_lost(capturing_bus) -> None:
+    perception = ScriptedPerception()
+    svc = ConversationCoachService(perception=perception, auto_drive=False)
+    asyncio.run(svc.on_load(_ctx(capturing_bus)))
+    asyncio.run(svc.on_enable())
+
+    # Lease yanked out from under the service.
+    perception.close()
+    status = svc.health_check()
+    # Unhealthy (not degraded) so the supervisor actually restarts the service.
+    assert status.state == "unhealthy"
+    assert "lease" in (status.detail or "")
+
+
+def test_auto_drive_worker_surfaces_prompt_then_releases_on_disable(capturing_bus) -> None:
+    # With auto_drive on, on_enable starts a worker thread that drives tick() on a
+    # timer — no manual stepping. The single queued cue must surface, then on_disable
+    # stops the worker and releases the lease (rule 5).
+    perception = ScriptedPerception([ConversationSignal(user_speaking_ratio=0.95)])
+    svc = ConversationCoachService(perception=perception, auto_drive=True, poll_interval_s=0.005)
+
+    asyncio.run(svc.on_load(_ctx(capturing_bus)))
+    asyncio.run(svc.on_enable())
+    try:
+        deadline = time.time() + 2.0
+        while time.time() < deadline and not _payloads(capturing_bus, OVERLAY_UPDATE):
+            time.sleep(0.01)
+    finally:
+        asyncio.run(svc.on_disable())
+
+    updates = _payloads(capturing_bus, OVERLAY_UPDATE)
+    assert any(
+        u["params"]["prompts"] and u["params"]["prompts"][0]["key"] == "monologue"
+        for u in updates
+    )
+    # Worker stopped and lease released on disable.
+    assert svc._worker is None
+    assert perception.is_open is False
+    assert perception.close_count == 1
+
