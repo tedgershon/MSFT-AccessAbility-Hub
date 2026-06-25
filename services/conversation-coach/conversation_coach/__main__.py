@@ -6,10 +6,11 @@ stdio: inbound ``lifecycle`` frames drive its hooks, and the service's own windo
 (started on enable) polls the real camera + mic via :class:`AdapterPerception`,
 emitting overlay events back across the seam.
 
-The remaining injection point is the perception model: wire a real
-:class:`~conversation_coach.perception.SignalExtractor` into ``AdapterPerception`` to
-turn live frames + audio into :class:`~conversation_coach.coaching.ConversationSignal`
-windows. Until then it runs with ``NullSignalExtractor`` (devices open, no inference).
+The perception model is wired here: :class:`WindowedSignalExtractor` fuses each live
+camera frame + audio chunk into :class:`~conversation_coach.coaching.ConversationSignal`
+windows (mic voice-activity for the user, face/gaze inference for the partner), so the
+coach surfaces prompts from real conversational cues. The extractor is injected into
+``AdapterPerception`` — the service body is unchanged.
 """
 
 from __future__ import annotations
@@ -17,11 +18,13 @@ from __future__ import annotations
 from aah_ipc import run_stdio_host
 
 from . import ConversationCoachService
-from .perception import AdapterPerception
+from .perception import AdapterPerception, WindowedSignalExtractor
 
 
 def main() -> None:
-    service = ConversationCoachService(perception=AdapterPerception())
+    service = ConversationCoachService(
+        perception=AdapterPerception(extractor=WindowedSignalExtractor()),
+    )
     run_stdio_host(service)
 
 
