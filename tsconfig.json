@@ -1,6 +1,7 @@
 {
   "files": [],
   "references": [
+    { "path": "./services/adaptive-learning" },
     { "path": "./services/creative-studio" },
     { "path": "./core/contracts" },
     { "path": "./core/kernel" },
