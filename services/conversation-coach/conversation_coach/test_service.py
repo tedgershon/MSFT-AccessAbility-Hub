@@ -8,6 +8,7 @@ are driven with ``asyncio.run`` so no pytest-asyncio plugin is required.
 from __future__ import annotations
 
 import asyncio
+import json
 
 from aah_contracts import (
     OVERLAY_ATTACH,
@@ -23,6 +24,21 @@ from conversation_coach.perception import ScriptedPerception
 
 def _ctx(bus) -> ServiceContext:
     return ServiceContext(self_id="conversation-coach", bus=bus, config={})
+
+
+def _payloads(bus, topic):
+    return [p for t, p in bus.emitted if t == topic]
+
+
+def _assert_ipc_serializable(payload) -> None:
+    """Overlay payloads cross the IPC seam via ``json.dumps`` — lock that in.
+
+    A plain JSON-serializable dict (not an ``OverlayLayer`` dataclass) using the TS
+    wire shape (camelCase ``ownerId``) is required, or the real transport crashes.
+    """
+
+    assert isinstance(payload, dict)
+    json.dumps(payload)  # raises if a non-serializable dataclass slips back in
 
 
 def test_requires_manifest_is_observe_only(capturing_bus) -> None:
@@ -44,8 +60,16 @@ def test_enable_acquires_lease_and_mounts_overlay(capturing_bus) -> None:
 
     assert perception.is_open is True
     assert perception.open_count == 1
-    topics = [t for t, _ in capturing_bus.emitted]
-    assert OVERLAY_ATTACH in topics
+    attaches = _payloads(capturing_bus, OVERLAY_ATTACH)
+    assert len(attaches) == 1
+    # Must be the TS/IPC wire shape: a JSON-serializable dict with camelCase ownerId.
+    _assert_ipc_serializable(attaches[0])
+    assert attaches[0] == {
+        "id": "conversation-coach:prompts",
+        "ownerId": "conversation-coach",
+        "kind": "coach-prompts",
+        "params": {"prompts": []},
+    }
 
 
 def test_disable_releases_lease_and_detaches_overlay(capturing_bus) -> None:
@@ -59,7 +83,11 @@ def test_disable_releases_lease_and_detaches_overlay(capturing_bus) -> None:
     # Rule 5: camera/mic lease released on disable.
     assert perception.is_open is False
     assert perception.close_count == 1
-    assert OVERLAY_DETACH in [t for t, _ in capturing_bus.emitted]
+    detaches = _payloads(capturing_bus, OVERLAY_DETACH)
+    assert len(detaches) == 1
+    _assert_ipc_serializable(detaches[0])
+    # camelCase ownerId so the host overlay surface can scope the detach by owner.
+    assert detaches[0] == {"id": "conversation-coach:prompts", "ownerId": "conversation-coach"}
 
 
 def test_tick_surfaces_prompt_via_overlay_update(capturing_bus) -> None:
@@ -71,9 +99,33 @@ def test_tick_surfaces_prompt_via_overlay_update(capturing_bus) -> None:
     prompts = svc.tick()
 
     assert [p.key for p in prompts] == ["monologue"]
-    updates = [p for t, p in capturing_bus.emitted if t == OVERLAY_UPDATE]
+    updates = _payloads(capturing_bus, OVERLAY_UPDATE)
     assert len(updates) == 1
-    assert updates[0].params["prompts"][0]["key"] == "monologue"
+    _assert_ipc_serializable(updates[0])
+    assert updates[0]["ownerId"] == "conversation-coach"
+    assert updates[0]["params"]["prompts"][0]["key"] == "monologue"
+
+
+def test_tick_clears_overlay_when_prompt_stops_firing(capturing_bus) -> None:
+    # Same cue twice: it fires on window 1, then the throttle mutes it on window 2.
+    # The overlay must clear to empty rather than leaving the prompt stuck on screen.
+    perception = ScriptedPerception(
+        [
+            ConversationSignal(user_speaking_ratio=0.95),
+            ConversationSignal(user_speaking_ratio=0.95),
+        ]
+    )
+    svc = ConversationCoachService(perception=perception)
+
+    asyncio.run(svc.on_load(_ctx(capturing_bus)))
+    asyncio.run(svc.on_enable())
+    assert [p.key for p in svc.tick()] == ["monologue"]
+    assert svc.tick() == []  # throttled this window
+
+    updates = _payloads(capturing_bus, OVERLAY_UPDATE)
+    assert len(updates) == 2
+    assert updates[0]["params"]["prompts"][0]["key"] == "monologue"
+    assert updates[1]["params"]["prompts"] == []  # cleared
 
 
 def test_tick_on_quiet_signal_emits_nothing(capturing_bus) -> None:

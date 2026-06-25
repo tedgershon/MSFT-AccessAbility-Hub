@@ -27,7 +27,6 @@ from aah_contracts import (
     AccessibilityService,
     Capability,
     HealthStatus,
-    OverlayLayer,
     ServiceContext,
     ServiceMeta,
     degraded,
@@ -74,15 +73,8 @@ class ConversationCoachService(AccessibilityService):
         self._perception.open()
         self._coach.reset()
         self._active = True
-        ctx.bus.emit(
-            OVERLAY_ATTACH,
-            OverlayLayer(
-                id=self.LAYER_ID,
-                owner_id=ctx.self_id,
-                kind="coach-prompts",
-                params={"prompts": []},
-            ),
-        )
+        self._last = []
+        ctx.bus.emit(OVERLAY_ATTACH, self._overlay_layer([]))
         self._mounted = True
 
     async def on_disable(self) -> None:
@@ -92,7 +84,7 @@ class ConversationCoachService(AccessibilityService):
         self._active = False
         self._perception.close()
         if ctx is not None and self._mounted:
-            ctx.bus.emit(OVERLAY_DETACH, {"id": self.LAYER_ID, "owner_id": ctx.self_id})
+            ctx.bus.emit(OVERLAY_DETACH, {"id": self.LAYER_ID, "ownerId": ctx.self_id})
         self._mounted = False
         self._last = []
 
@@ -102,8 +94,11 @@ class ConversationCoachService(AccessibilityService):
     def tick(self) -> list[RepairPrompt]:
         """Process one perception window and surface any repair prompts.
 
-        Returns the prompts emitted this tick (empty when idle). The process loop in
-        ``__main__`` drives this; it's a method so tests can step it deterministically.
+        Emits an ``overlay/update`` whenever the surfaced prompt set *changes* —
+        including back to empty, so a prompt is cleared once it stops firing rather
+        than staying stuck on screen. Returns the prompts emitted this tick (empty
+        when idle). The process loop in ``__main__`` drives this; it's a method so
+        tests can step it deterministically.
         """
 
         ctx = self._ctx
@@ -113,23 +108,35 @@ class ConversationCoachService(AccessibilityService):
         if signal is None:
             return []
         prompts = self._coach.assess(signal)
-        if prompts:
+        if self._prompt_keys(prompts) != self._prompt_keys(self._last):
             self._last = prompts
-            ctx.bus.emit(
-                OVERLAY_UPDATE,
-                OverlayLayer(
-                    id=self.LAYER_ID,
-                    owner_id=ctx.self_id,
-                    kind="coach-prompts",
-                    params={
-                        "prompts": [
-                            {"key": p.key, "text": p.text, "severity": p.severity}
-                            for p in prompts
-                        ]
-                    },
-                ),
-            )
+            ctx.bus.emit(OVERLAY_UPDATE, self._overlay_layer(prompts))
         return prompts
+
+    def _overlay_layer(self, prompts: list[RepairPrompt]) -> dict[str, object]:
+        """Build the overlay-layer wire payload.
+
+        A plain JSON-serializable dict using the TS ``OverlayLayer`` wire shape
+        (camelCase ``ownerId``), so it survives ``json.dumps`` across the IPC seam and
+        the host-side overlay surface recognises it. ``self_id`` is non-None whenever
+        this is called (only from enabled paths that checked ``ctx``).
+        """
+
+        assert self._ctx is not None
+        return {
+            "id": self.LAYER_ID,
+            "ownerId": self._ctx.self_id,
+            "kind": "coach-prompts",
+            "params": {
+                "prompts": [
+                    {"key": p.key, "text": p.text, "severity": p.severity} for p in prompts
+                ]
+            },
+        }
+
+    @staticmethod
+    def _prompt_keys(prompts: list[RepairPrompt]) -> list[str]:
+        return [p.key for p in prompts]
 
     def health_check(self) -> HealthStatus:
         if self._ctx is None:

@@ -172,9 +172,11 @@ def default_detectors() -> list[CueDetector]:
 class ConversationCoach:
     """Runs the detectors over a signal and yields prompts to surface.
 
-    Stateful only for throttling: a prompt with a given ``key`` is not re-surfaced
-    until it has stopped firing for ``cooldown_windows`` consecutive windows, so the
-    user isn't nagged every tick about the same ongoing situation.
+    Stateful only for throttling. When a prompt with a given ``key`` fires, it is
+    muted for the next ``cooldown_windows`` windows and then allowed to fire again —
+    even if the underlying cue is still ongoing. The effect is a *periodic* reminder
+    (every ``cooldown_windows + 1`` windows for a persistent situation) rather than
+    nagging the user on every single tick.
     """
 
     def __init__(
