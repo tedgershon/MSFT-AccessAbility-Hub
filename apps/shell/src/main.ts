@@ -9,6 +9,7 @@ import { app, BrowserWindow, desktopCapturer } from 'electron';
 import { DisplayCaptureAdapter, ElectronDisplayCaptureBackend } from '@aah/display-capture';
 import { createHub } from './bootstrap.js';
 import { DisplayFramePublisher } from './display-frame-publisher.js';
+import { startPythonServices } from './python-services.js';
 
 function createDesktopCaptureBindings(): {
   listSources(): Promise<Array<{ id: string; name: string; displayId?: string; thumbnailDataUrl?: string }>>;
@@ -67,6 +68,11 @@ async function main(): Promise<void> {
     console.warn('No display capture source available; frame publishing is disabled.');
   }
 
+  // Attach the out-of-process Python services (eye tracking, gaze correlation) to
+  // the kernel bus over the IPC seam. They run as child processes; the bridge keeps
+  // them decoupled from in-shell TS services.
+  const pythonServices = startPythonServices(hub.kernel.bus);
+
   const window = new BrowserWindow({
     width: 420,
     height: 640,
@@ -83,6 +89,7 @@ async function main(): Promise<void> {
   void window;
 
   app.on('window-all-closed', () => {
+    pythonServices.stop();
     void displayPublisher.stop().finally(() => {
       void hub.kernel.shutdown().finally(() => app.quit());
     });

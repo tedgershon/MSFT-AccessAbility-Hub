@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+
 from aah_contracts import ServiceContext
 from eye_tracking import EyeTrackingService
 
@@ -22,7 +23,9 @@ def test_on_enable_emits_bootstrap_frame_and_calibration(capturing_bus) -> None:
     assert "calibration/state" in topics
     assert "camera/frame-ref" in topics
 
-    frame_payload = next(payload for topic, payload in capturing_bus.emitted if topic == "camera/frame-ref")
+    frame_payload = next(
+        payload for topic, payload in capturing_bus.emitted if topic == "camera/frame-ref"
+    )
     assert frame_payload["sourceServiceId"] == "eye-tracking"
     assert frame_payload["width"] == 640
     assert frame_payload["height"] == 360
@@ -51,5 +54,9 @@ def test_on_disable_emits_idle_calibration(capturing_bus) -> None:
     asyncio.run(svc.on_disable())
 
     assert svc.health_check().detail == "idle"
-    states = [payload["state"] for topic, payload in capturing_bus.emitted if topic == "calibration/state"]
+    states = [
+        payload["state"]
+        for topic, payload in capturing_bus.emitted
+        if topic == "calibration/state"
+    ]
     assert "idle" in states

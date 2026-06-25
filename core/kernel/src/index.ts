@@ -18,3 +18,9 @@ export {
 } from './resource-arbiter.js';
 export { LifecycleManager } from './lifecycle.js';
 export { Supervisor, type SupervisorOptions } from './supervisor.js';
+export {
+  IpcEventBridge,
+  type BridgeMessage,
+  type BridgeTransport,
+  type IpcEventBridgeOptions,
+} from './ipc-bridge.js';

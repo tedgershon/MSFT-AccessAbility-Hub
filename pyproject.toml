@@ -13,6 +13,7 @@ dependencies = ["aah-contracts", "audio-adapter"]
 [tool.uv.workspace]
 members = [
   "core/contracts/python",
+  "core/host/python",
   "services/eye-tracking",
   "services/gaze-correlation",
   "services/voice-commands",
@@ -47,6 +48,7 @@ python_files = ["test_*.py", "*_test.py"]
 # source root to sys.path so cross-package imports resolve during collection.
 pythonpath = [
   "core/contracts/python",
+  "core/host/python",
   "services/eye-tracking",
   "services/gaze-correlation",
   "services/voice-commands",

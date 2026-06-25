@@ -3,7 +3,11 @@ name = "eye-tracking"
 version = "0.1.0"
 description = "Eye-tracking accessibility service (Python + OpenCV / MediaPipe)."
 requires-python = ">=3.11"
-dependencies = ["aah-contracts"]
+dependencies = ["aah-contracts", "aah-host"]
+
+[tool.uv.sources]
+aah-contracts = { workspace = true }
+aah-host = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

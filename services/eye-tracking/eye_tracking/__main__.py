@@ -6,13 +6,20 @@ across the IPC seam (event bus), never via direct calls.
 
 from __future__ import annotations
 
+from aah_contracts import CALIBRATION_STATE, CAMERA_FRAME_REF
+from aah_host import run_stdio_host
+
 from . import EyeTrackingService
 
 
 def main() -> None:
-    service = EyeTrackingService()
-    # TODO: connect to the kernel IPC bridge, register `service`, and run the loop.
-    _ = service
+    # Eye tracking is a producer: it publishes camera frame refs and calibration
+    # state up to the kernel and consumes nothing from it yet.
+    run_stdio_host(
+        [EyeTrackingService()],
+        inbound=[],
+        outbound=[CAMERA_FRAME_REF, CALIBRATION_STATE],
+    )
 
 
 if __name__ == "__main__":
