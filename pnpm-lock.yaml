@@ -147,6 +147,22 @@ importers:
         specifier: workspace:*
         version: link:../../core/contracts
 
+  tests/integration:
+    dependencies:
+      '@aah/contracts':
+        specifier: workspace:*
+        version: link:../../core/contracts
+      '@aah/ipc':
+        specifier: workspace:*
+        version: link:../../adapters/ipc
+      '@aah/kernel':
+        specifier: workspace:*
+        version: link:../../core/kernel
+    devDependencies:
+      vitest:
+        specifier: ^1.6.0
+        version: 1.6.1(@types/node@20.19.43)
+
 packages:
 
   '@electron/get@2.0.3':

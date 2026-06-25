@@ -15,8 +15,10 @@ from aah_contracts import (
     OVERLAY_ATTACH,
     OVERLAY_DETACH,
     OVERLAY_UPDATE,
+    OverlayLayer,
     ServiceContext,
 )
+from aah_ipc import EventFrame, encode_frame
 
 from conversation_coach import ConversationCoachService
 from conversation_coach.coaching import ConversationSignal
@@ -31,15 +33,15 @@ def _payloads(bus, topic):
     return [p for t, p in bus.emitted if t == topic]
 
 
-def _assert_ipc_serializable(payload) -> None:
-    """Overlay payloads cross the IPC seam via ``json.dumps`` — lock that in.
+def _wire(topic, payload):
+    """Serialize an emitted overlay payload across the real IPC seam.
 
-    A plain JSON-serializable dict (not an ``OverlayLayer`` dataclass) using the TS
-    wire shape (camelCase ``ownerId``) is required, or the real transport crashes.
+    The service emits the shared ``OverlayLayer`` contract (snake_case ``owner_id``);
+    the seam must convert it to the TS wire shape (camelCase ``ownerId``) — that
+    conversion is the whole point of issue #57, so lock it in here.
     """
 
-    assert isinstance(payload, dict)
-    json.dumps(payload)  # raises if a non-serializable dataclass slips back in
+    return json.loads(encode_frame(EventFrame(topic=topic, payload=payload)))["payload"]
 
 
 def test_requires_manifest_is_observe_only(capturing_bus) -> None:
@@ -63,9 +65,15 @@ def test_enable_acquires_lease_and_mounts_overlay(capturing_bus) -> None:
     assert perception.open_count == 1
     attaches = _payloads(capturing_bus, OVERLAY_ATTACH)
     assert len(attaches) == 1
-    # Must be the TS/IPC wire shape: a JSON-serializable dict with camelCase ownerId.
-    _assert_ipc_serializable(attaches[0])
-    assert attaches[0] == {
+    # The service emits the shared contract type, not a hand-rolled dict (issue #57).
+    assert attaches[0] == OverlayLayer(
+        id="conversation-coach:prompts",
+        owner_id="conversation-coach",
+        kind="coach-prompts",
+        params={"prompts": []},
+    )
+    # ...and the IPC seam serializes it to the camelCase TS wire shape.
+    assert _wire(OVERLAY_ATTACH, attaches[0]) == {
         "id": "conversation-coach:prompts",
         "ownerId": "conversation-coach",
         "kind": "coach-prompts",
@@ -86,9 +94,13 @@ def test_disable_releases_lease_and_detaches_overlay(capturing_bus) -> None:
     assert perception.close_count == 1
     detaches = _payloads(capturing_bus, OVERLAY_DETACH)
     assert len(detaches) == 1
-    _assert_ipc_serializable(detaches[0])
-    # camelCase ownerId so the host overlay surface can scope the detach by owner.
-    assert detaches[0] == {"id": "conversation-coach:prompts", "ownerId": "conversation-coach"}
+    # Detach carries the contract ``{id, owner_id}``; the seam casts it to camelCase so
+    # the host overlay surface can scope the detach by owner.
+    assert detaches[0] == {"id": "conversation-coach:prompts", "owner_id": "conversation-coach"}
+    assert _wire(OVERLAY_DETACH, detaches[0]) == {
+        "id": "conversation-coach:prompts",
+        "ownerId": "conversation-coach",
+    }
 
 
 def test_tick_surfaces_prompt_via_overlay_update(capturing_bus) -> None:
@@ -102,9 +114,11 @@ def test_tick_surfaces_prompt_via_overlay_update(capturing_bus) -> None:
     assert [p.key for p in prompts] == ["monologue"]
     updates = _payloads(capturing_bus, OVERLAY_UPDATE)
     assert len(updates) == 1
-    _assert_ipc_serializable(updates[0])
-    assert updates[0]["ownerId"] == "conversation-coach"
-    assert updates[0]["params"]["prompts"][0]["key"] == "monologue"
+    assert isinstance(updates[0], OverlayLayer)
+    assert updates[0].owner_id == "conversation-coach"
+    assert updates[0].params["prompts"][0]["key"] == "monologue"
+    # The seam casts the same window to the camelCase TS wire shape.
+    assert _wire(OVERLAY_UPDATE, updates[0])["ownerId"] == "conversation-coach"
 
 
 def test_tick_clears_overlay_when_prompt_stops_firing(capturing_bus) -> None:
@@ -125,8 +139,8 @@ def test_tick_clears_overlay_when_prompt_stops_firing(capturing_bus) -> None:
 
     updates = _payloads(capturing_bus, OVERLAY_UPDATE)
     assert len(updates) == 2
-    assert updates[0]["params"]["prompts"][0]["key"] == "monologue"
-    assert updates[1]["params"]["prompts"] == []  # cleared
+    assert updates[0].params["prompts"][0]["key"] == "monologue"
+    assert updates[1].params["prompts"] == []  # cleared
 
 
 def test_tick_on_quiet_signal_emits_nothing(capturing_bus) -> None:
@@ -198,7 +212,7 @@ def test_auto_drive_worker_surfaces_prompt_then_releases_on_disable(capturing_bu
 
     updates = _payloads(capturing_bus, OVERLAY_UPDATE)
     assert any(
-        u["params"]["prompts"] and u["params"]["prompts"][0]["key"] == "monologue"
+        u.params["prompts"] and u.params["prompts"][0]["key"] == "monologue"
         for u in updates
     )
     # Worker stopped and lease released on disable.

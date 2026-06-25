@@ -20,8 +20,12 @@ from dataclasses import dataclass
 from typing import Any, BinaryIO, Literal, Protocol, runtime_checkable
 
 from aah_contracts import (
+    OVERLAY_ATTACH,
+    OVERLAY_DETACH,
+    OVERLAY_UPDATE,
     AccessibilityService,
     HealthStatus,
+    OverlayLayer,
     ServiceContext,
 )
 
@@ -64,6 +68,35 @@ def _health_to_wire(status: HealthStatus) -> dict[str, Any]:
     return {"state": status.state, "detail": status.detail, "checkedAt": status.checked_at}
 
 
+# Overlay event topics carry the shared ``OverlayLayer`` contract, whose Python
+# dataclass is snake_case (``owner_id``) while the TS wire contract + host overlay
+# surface expect camelCase (``ownerId``). Without this seam conversion, ``json.dumps``
+# would ship ``owner_id`` and the TS surface would silently drop the layer's owner.
+_OVERLAY_TOPICS = frozenset({OVERLAY_ATTACH, OVERLAY_UPDATE, OVERLAY_DETACH})
+
+
+def _overlay_to_wire(payload: Any) -> Any:
+    """Convert an overlay payload to the camelCase TS wire shape (``owner_id``->``ownerId``).
+
+    Mirrors :func:`_health_to_wire`. Accepts the shared :class:`OverlayLayer` dataclass
+    (``overlay/attach`` / ``overlay/update``) or a detach mapping ``{id, owner_id}``.
+    Payloads already in camelCase pass through unchanged, so the conversion is
+    idempotent and tolerant of older emitters.
+    """
+    if isinstance(payload, OverlayLayer):
+        return {
+            "id": payload.id,
+            "ownerId": payload.owner_id,
+            "kind": payload.kind,
+            "params": payload.params,
+        }
+    if isinstance(payload, dict) and "owner_id" in payload:
+        wire = dict(payload)
+        wire["ownerId"] = wire.pop("owner_id")
+        return wire
+    return payload
+
+
 def _health_from_wire(data: dict[str, Any]) -> HealthStatus:
     return HealthStatus(
         state=data["state"],
@@ -75,7 +108,10 @@ def _health_from_wire(data: dict[str, Any]) -> HealthStatus:
 def encode_frame(frame: Frame) -> str:
     """Serialize a frame to a single newline-free JSON line for a real transport."""
     if isinstance(frame, EventFrame):
-        obj: dict[str, Any] = {"kind": "event", "topic": frame.topic, "payload": frame.payload}
+        payload = frame.payload
+        if frame.topic in _OVERLAY_TOPICS:
+            payload = _overlay_to_wire(payload)
+        obj: dict[str, Any] = {"kind": "event", "topic": frame.topic, "payload": payload}
     elif isinstance(frame, LifecycleFrame):
         obj = {"kind": "lifecycle", "phase": frame.phase}
     else:
