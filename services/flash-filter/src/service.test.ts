@@ -200,11 +200,36 @@ describe('FlashFilterService', () => {
     expect(last.intensity).toBeCloseTo(0.9, 2);
   });
 
-  it('falls back to defaults when config values are unknown', async () => {
+  it('scales adaptive dim using the configured sensitivity limit', async () => {
+    const { ctx, bus } = makeCtx(fakeConfig({ 'flashFilter.sensitivity': 'high' }));
+    const svc = new FlashFilterService();
+    await svc.onLoad(ctx);
+    await svc.onEnable();
+
+    let reading = { flashesPerSecond: 0, risk: false };
+    for (const [luminance, atMs] of [
+      [0, 0],
+      [1, 100],
+      [0, 200],
+      [1, 300],
+      [0, 400],
+      [1, 500],
+      [0, 600],
+    ] as const) {
+      reading = svc.ingestLuminance(luminance, atMs);
+    }
+
+    expect(reading).toEqual({ flashesPerSecond: 2.5, risk: true });
+    const updates = updateEvents(bus);
+    const last = updates[updates.length - 1].params as { intensity: number };
+    expect(last.intensity).toBeGreaterThan(0.6);
+  });
+
+  it('falls back to defaults when config values are invalid inherited keys', async () => {
     const { ctx, bus } = makeCtx(
       fakeConfig({
-        'flashFilter.sensitivity': 'nope',
-        'flashFilter.strategy': 'nope',
+        'flashFilter.sensitivity': '__proto__',
+        'flashFilter.strategy': '__proto__',
       }),
     );
     const svc = new FlashFilterService();

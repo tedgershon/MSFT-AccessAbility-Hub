@@ -31,7 +31,12 @@ import {
   type FlashReading,
   type SensitivityProfile,
 } from './detector.js';
-import { STRATEGIES, type FilterStrategy } from './strategies.js';
+import {
+  createStrategy,
+  STRATEGIES,
+  type FilterStrategy,
+  type StrategyId,
+} from './strategies.js';
 
 /** Intensity changes smaller than this don't warrant an overlay update. */
 const INTENSITY_EPSILON = 0.01;
@@ -49,7 +54,7 @@ export class FlashFilterService implements AccessibilityService {
 
   #ctx?: ServiceContext;
   #profile: SensitivityProfile = SENSITIVITY_PROFILES.standard;
-  #strategy: FilterStrategy = STRATEGIES['adaptive-dim'];
+  #strategy: FilterStrategy = createStrategy('adaptive-dim', SENSITIVITY_PROFILES.standard);
   #detector = new FlashDetector(SENSITIVITY_PROFILES.standard);
   #active = false;
   #intensity = 0;
@@ -59,12 +64,14 @@ export class FlashFilterService implements AccessibilityService {
     this.#ctx = ctx;
 
     const profileId = ctx.config.get<string>('flashFilter.sensitivity');
-    if (profileId && SENSITIVITY_PROFILES[profileId]) {
+    if (profileId && hasOwnKey(SENSITIVITY_PROFILES, profileId)) {
       this.#profile = SENSITIVITY_PROFILES[profileId];
     }
 
     const strategyId = ctx.config.get<string>('flashFilter.strategy');
-    if (strategyId && STRATEGIES[strategyId]) this.#strategy = STRATEGIES[strategyId];
+    const selectedStrategyId: StrategyId =
+      strategyId && hasOwnKey(STRATEGIES, strategyId) ? strategyId : 'adaptive-dim';
+    this.#strategy = createStrategy(selectedStrategyId, this.#profile);
 
     this.#detector = new FlashDetector(this.#profile);
   }
@@ -153,4 +160,11 @@ function clamp01(n: number): number {
   if (n < 0) return 0;
   if (n > 1) return 1;
   return n;
+}
+
+function hasOwnKey<T extends object>(
+  value: T,
+  key: PropertyKey,
+): key is Extract<keyof T, string> {
+  return Object.prototype.hasOwnProperty.call(value, key);
 }

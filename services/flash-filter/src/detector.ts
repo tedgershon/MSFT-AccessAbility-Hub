@@ -45,7 +45,7 @@ const WINDOW_MS = 1000;
 export interface FlashReading {
   /** Significant luminance reversals observed in the trailing 1s window. */
   flashesPerSecond: number;
-  /** True when `flashesPerSecond` meets or exceeds the profile limit. */
+  /** True when `flashesPerSecond` exceeds the profile limit. */
   risk: boolean;
 }
 
@@ -57,6 +57,7 @@ export class FlashDetector {
   #profile: SensitivityProfile;
   /** Timestamps (ms) of recent opposing transitions, oldest-first (2 = one flash). */
   readonly #flashes: number[] = [];
+  #flashHead = 0;
   /** Last luminance level at which a significant transition was registered. */
   #lastLevel?: number;
   /** Direction of the last significant transition: +1 (brighter) or -1 (darker). */
@@ -73,6 +74,7 @@ export class FlashDetector {
   /** Drop all accumulated state (e.g. when the guard is re-enabled). */
   reset(): void {
     this.#flashes.length = 0;
+    this.#flashHead = 0;
     this.#lastLevel = undefined;
     this.#lastDir = 0;
   }
@@ -110,15 +112,19 @@ export class FlashDetector {
 
   #read(atMs: number): FlashReading {
     const cutoff = atMs - WINDOW_MS;
-    while (this.#flashes.length > 0 && this.#flashes[0] < cutoff) {
-      this.#flashes.shift();
+    while (this.#flashHead < this.#flashes.length && this.#flashes[this.#flashHead] < cutoff) {
+      this.#flashHead += 1;
+    }
+    if (this.#flashHead > 0 && this.#flashHead * 2 >= this.#flashes.length) {
+      this.#flashes.splice(0, this.#flashHead);
+      this.#flashHead = 0;
     }
     // A flash (per WCAG/IEC) is a *pair* of opposing luminance changes — one rise
     // and one fall — so two recorded reversals make one flash.
-    const flashesPerSecond = this.#flashes.length / 2;
+    const flashesPerSecond = (this.#flashes.length - this.#flashHead) / 2;
     return {
       flashesPerSecond,
-      risk: flashesPerSecond >= this.#profile.flashesPerSecondLimit,
+      risk: flashesPerSecond > this.#profile.flashesPerSecondLimit,
     };
   }
 }

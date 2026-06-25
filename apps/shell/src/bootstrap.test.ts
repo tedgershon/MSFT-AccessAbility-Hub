@@ -54,4 +54,12 @@ describe('createHub — arbiter-denial escalation', () => {
 
     expect(arbitrate).toHaveBeenCalledWith('input', ['a', 'b']);
   });
+
+  it('does not install flash-filter until a luminance source is wired', async () => {
+    hub = await createHub();
+
+    const installed = [...hub.kernel.registry.ids()];
+    expect(installed).toContain('colorblind-contrast');
+    expect(installed).not.toContain('flash-filter');
+  });
 });

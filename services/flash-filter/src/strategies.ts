@@ -7,7 +7,11 @@
  * strategy changes how the guard *responds* without touching detection.
  */
 
-import type { FlashReading } from './detector.js';
+import {
+  SENSITIVITY_PROFILES,
+  type FlashReading,
+  type SensitivityProfile,
+} from './detector.js';
 
 /** A flash-response strategy. */
 export interface FilterStrategy {
@@ -53,10 +57,22 @@ export class BlackoutStrategy implements FilterStrategy {
   }
 }
 
-export const STRATEGIES: Record<string, FilterStrategy> = {
-  'adaptive-dim': new AdaptiveDimStrategy(),
-  blackout: new BlackoutStrategy(),
+const STRATEGY_FACTORIES = {
+  'adaptive-dim': (profile: SensitivityProfile) =>
+    new AdaptiveDimStrategy(profile.flashesPerSecondLimit),
+  blackout: (_profile: SensitivityProfile) => new BlackoutStrategy(),
+} satisfies Record<string, (profile: SensitivityProfile) => FilterStrategy>;
+
+export type StrategyId = keyof typeof STRATEGY_FACTORIES;
+
+export const STRATEGIES: Record<StrategyId, FilterStrategy> = {
+  'adaptive-dim': STRATEGY_FACTORIES['adaptive-dim'](SENSITIVITY_PROFILES.standard),
+  blackout: STRATEGY_FACTORIES.blackout(SENSITIVITY_PROFILES.standard),
 };
+
+export function createStrategy(strategyId: StrategyId, profile: SensitivityProfile): FilterStrategy {
+  return STRATEGY_FACTORIES[strategyId](profile);
+}
 
 function clamp01(n: number): number {
   if (Number.isNaN(n)) return 0;
