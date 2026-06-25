@@ -9,7 +9,7 @@
 
 export interface ClawPilotSession {
   /** Send a computer-use instruction to the external agent. */
-  send(instruction: string): Promise<void>;
+  send(instruction: string, context?: Record<string, unknown>): Promise<void>;
   close(): Promise<void>;
 }
 

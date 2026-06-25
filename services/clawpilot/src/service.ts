@@ -18,7 +18,22 @@ import {
   type ServiceContext,
   type ServiceMeta,
 } from '@aah/contracts';
+import { ClawPilotMcpAdapter, type ClawPilotSession } from '@aah/clawpilot-mcp-adapter';
+import type { Command } from './command.js';
 import { CommandQueue, type CommandContext } from './command.js';
+
+class RemoteInstructionCommand implements Command {
+  readonly kind = 'remote-instruction';
+
+  constructor(
+    private readonly instruction: string,
+    private readonly context?: Record<string, unknown>,
+  ) {}
+
+  async execute(ctx: CommandContext): Promise<void> {
+    await ctx.sendInstruction(this.instruction, this.context);
+  }
+}
 
 export class ClawPilotService implements AccessibilityService {
   readonly meta: ServiceMeta = {
@@ -36,6 +51,15 @@ export class ClawPilotService implements AccessibilityService {
 
   #ctx?: ServiceContext;
   #queue?: CommandQueue;
+  #offInputContext?: () => void;
+  #session?: ClawPilotSession;
+  readonly #adapter?: ClawPilotMcpAdapter;
+  readonly #defaultEndpoint: string;
+
+  constructor(options: { adapter?: ClawPilotMcpAdapter; endpoint?: string } = {}) {
+    this.#adapter = options.adapter;
+    this.#defaultEndpoint = options.endpoint ?? 'ws://localhost:8765';
+  }
 
   async onLoad(ctx: ServiceContext): Promise<void> {
     this.#ctx = ctx;
@@ -45,25 +69,53 @@ export class ClawPilotService implements AccessibilityService {
         kind: 'cursor',
         payload: { audit: entry },
       }),
+      sendInstruction: async (instruction, context) => {
+        if (!this.#session) {
+          throw new Error('clawpilot session is not connected');
+        }
+        await this.#session.send(instruction, context);
+      },
     };
     this.#queue = new CommandQueue(commandCtx);
+
+    this.#offInputContext = ctx.bus.on('input/context', (intent) => {
+      if (!this.#session || !this.#queue) return;
+      const instruction =
+        typeof intent.payload === 'string' ? intent.payload : JSON.stringify(intent.payload);
+      this.#queue.enqueue(
+        new RemoteInstructionCommand(
+          instruction,
+          intent.context as Record<string, unknown> | undefined,
+        ),
+      );
+    });
   }
 
   async onEnable(): Promise<void> {
-    // TODO: connect to the ClawPilot MCP server via the clawpilotMCP adapter.
+    if (!this.#ctx || this.#session) return;
+    const endpoint = this.#ctx.config.get<string>('clawpilot.endpoint') ?? this.#defaultEndpoint;
+    const adapter = this.#adapter ?? new ClawPilotMcpAdapter({ endpoint });
+    this.#session = await adapter.connect();
   }
 
   async onDisable(): Promise<void> {
-    // TODO: disconnect the MCP session and stop accepting commands.
+    if (this.#session) {
+      await this.#session.close();
+      this.#session = undefined;
+    }
   }
 
   async onUnload(): Promise<void> {
+    await this.onDisable();
+    this.#offInputContext?.();
+    this.#offInputContext = undefined;
     this.#ctx = undefined;
     this.#queue = undefined;
   }
 
   healthCheck(): HealthStatus {
     if (!this.#ctx || !this.#queue) return degraded('not loaded');
-    return healthy('clawpilot idle');
+    if (!this.#session) return healthy('clawpilot idle');
+    return healthy('clawpilot connected');
   }
 }

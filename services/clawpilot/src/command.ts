@@ -7,6 +7,8 @@
 export interface CommandContext {
   /** Append-only audit sink. */
   audit(entry: string): void;
+  /** Dispatch a remote instruction to the ClawPilot session. */
+  sendInstruction(instruction: string, context?: Record<string, unknown>): Promise<void>;
 }
 
 /** A single, reversible-where-possible computer action. */

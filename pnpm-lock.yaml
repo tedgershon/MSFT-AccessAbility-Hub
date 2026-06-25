@@ -103,6 +103,9 @@ importers:
 
   services/clawpilot:
     dependencies:
+      '@aah/clawpilot-mcp-adapter':
+        specifier: workspace:*
+        version: link:../../adapters/clawpilotMCP
       '@aah/contracts':
         specifier: workspace:*
         version: link:../../core/contracts

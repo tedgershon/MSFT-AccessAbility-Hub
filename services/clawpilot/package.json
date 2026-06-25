@@ -13,6 +13,7 @@
     "lint": "echo \"(lint placeholder)\""
   },
   "dependencies": {
-    "@aah/contracts": "workspace:*"
+    "@aah/contracts": "workspace:*",
+    "@aah/clawpilot-mcp-adapter": "workspace:*"
   }
 }
