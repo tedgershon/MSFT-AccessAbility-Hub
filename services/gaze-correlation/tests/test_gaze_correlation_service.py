@@ -24,19 +24,25 @@ def test_on_enable_and_disable_emit_calibration_states(capturing_bus) -> None:
     assert "idle" in states
 
 
-def test_ingesting_frame_refs_emits_gaze_point_when_active(capturing_bus) -> None:
+def test_calibration_samples_mark_service_ready(capturing_bus) -> None:
     svc = GazeCorrelationService()
     asyncio.run(svc.on_load(make_ctx(capturing_bus)))
     asyncio.run(svc.on_enable())
 
-    svc.ingest_camera_frame_ref(
-        {
-            "sourceServiceId": "eye-tracking",
-            "capturedAtMs": 1,
-            "width": 640,
-            "height": 360,
-        }
-    )
+    svc.add_calibration_sample(camera_x=0.1, camera_y=0.2, screen_x=100, screen_y=200)
+    svc.add_calibration_sample(camera_x=0.9, camera_y=0.8, screen_x=1820, screen_y=880)
+
+    states = [payload["state"] for topic, payload in capturing_bus.emitted if topic == "calibration/state"]
+    assert "ready" in states
+
+
+def test_ingesting_gaze_and_display_emits_mapped_point_when_calibrated(capturing_bus) -> None:
+    svc = GazeCorrelationService()
+    asyncio.run(svc.on_load(make_ctx(capturing_bus)))
+    asyncio.run(svc.on_enable())
+
+    svc.add_calibration_sample(camera_x=0.0, camera_y=0.0, screen_x=0, screen_y=0)
+    svc.add_calibration_sample(camera_x=1.0, camera_y=1.0, screen_x=1920, screen_y=1080)
     svc.ingest_display_frame_ref(
         {
             "sourceServiceId": "shell-display-capture",
@@ -45,13 +51,46 @@ def test_ingesting_frame_refs_emits_gaze_point_when_active(capturing_bus) -> Non
             "height": 1080,
         }
     )
+    svc.ingest_camera_gaze(
+        {
+            "sourceServiceId": "eye-tracking",
+            "capturedAtMs": 3,
+            "x": 0.5,
+            "y": 0.25,
+            "confidence": 0.8,
+        }
+    )
 
     gaze_payloads = [payload for topic, payload in capturing_bus.emitted if topic == "gaze/point"]
     assert len(gaze_payloads) == 1
     assert gaze_payloads[0]["sourceServiceId"] == "gaze-correlation"
     assert gaze_payloads[0]["x"] == 960
-    assert gaze_payloads[0]["y"] == 540
-    assert gaze_payloads[0]["confidence"] == 0.5
+    assert gaze_payloads[0]["y"] == 270
+    assert gaze_payloads[0]["confidence"] == 0.8
 
-    states = [payload["state"] for topic, payload in capturing_bus.emitted if topic == "calibration/state"]
-    assert "ready" in states
+
+def test_no_gaze_emitted_until_calibrated(capturing_bus) -> None:
+    svc = GazeCorrelationService()
+    asyncio.run(svc.on_load(make_ctx(capturing_bus)))
+    asyncio.run(svc.on_enable())
+
+    svc.ingest_display_frame_ref(
+        {
+            "sourceServiceId": "shell-display-capture",
+            "capturedAtMs": 2,
+            "width": 1920,
+            "height": 1080,
+        }
+    )
+    svc.ingest_camera_gaze(
+        {
+            "sourceServiceId": "eye-tracking",
+            "capturedAtMs": 3,
+            "x": 0.5,
+            "y": 0.25,
+            "confidence": 0.8,
+        }
+    )
+
+    gaze_payloads = [payload for topic, payload in capturing_bus.emitted if topic == "gaze/point"]
+    assert len(gaze_payloads) == 0
