@@ -11,6 +11,7 @@
     { "path": "../../core/coordinator" },
     { "path": "../../services/colorblind-contrast" },
     { "path": "../../services/flash-filter" },
+    { "path": "../../adapters/display-capture" },
     { "path": "../../adapters/ipc" }
   ]
 }

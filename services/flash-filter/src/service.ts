@@ -8,8 +8,10 @@
  * Like the colorblind/contrast tile this is a pure display-overlay service: it
  * declares only `displayOverlay: shared` and never drives input. There is no
  * screen-capture Resource in the contract's closed union, so the host/adapter feeds
- * relative-luminance samples in via {@link FlashFilterService.ingestLuminance};
- * detection and the protective layer live here.
+ * relative-luminance samples in over the event bus on `display/luminance`; the
+ * service subscribes while enabled and releases the subscription in `onDisable`.
+ * Detection and the protective layer live here. {@link FlashFilterService.ingestLuminance}
+ * remains an internal/test entry point — the production data path is the bus.
  *
  * Strategy pattern (see {@link FilterStrategy}) decouples *how hard we dim* from
  * *how we detect* (see {@link FlashDetector}).
@@ -59,6 +61,8 @@ export class FlashFilterService implements AccessibilityService {
   #active = false;
   #intensity = 0;
   #lastReading: FlashReading = { flashesPerSecond: 0, risk: false };
+  /** Disposer for the `display/luminance` bus subscription; set while enabled. */
+  #offLuminance?: () => void;
 
   async onLoad(ctx: ServiceContext): Promise<void> {
     this.#ctx = ctx;
@@ -90,6 +94,10 @@ export class FlashFilterService implements AccessibilityService {
       kind: 'flash-guard',
       params: this.#renderParams(),
     });
+    // Production data path: luminance arrives over the bus, not via a direct call.
+    this.#offLuminance = ctx.bus.on('display/luminance', ({ luminance, atMs }) => {
+      this.ingestLuminance(luminance, atMs);
+    });
   }
 
   async onDisable(): Promise<void> {
@@ -97,6 +105,9 @@ export class FlashFilterService implements AccessibilityService {
     if (!ctx || !this.#active) return;
     this.#active = false;
     this.#intensity = 0;
+    // Release the bus subscription so no listener leaks past the enabled window.
+    this.#offLuminance?.();
+    this.#offLuminance = undefined;
     // Take the protective layer off the overlay surface.
     ctx.bus.emit('overlay/detach', { id: this.#layerId, ownerId: ctx.selfId });
   }
