@@ -1,6 +1,8 @@
 {
   "files": [],
   "references": [
+    { "path": "./services/input-personalization" },
+    { "path": "./services/pointing-magnifier" },
     { "path": "./core/contracts" },
     { "path": "./core/kernel" },
     { "path": "./core/coordinator" },

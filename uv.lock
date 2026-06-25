@@ -25,6 +25,8 @@ source = { virtual = "." }
 dependencies = [
     { name = "aah-contracts" },
     { name = "audio-adapter" },
+    { name = "camera-adapter" },
+    { name = "eye-tracking" },
 ]
 
 [package.dev-dependencies]
@@ -37,6 +39,8 @@ dev = [
 requires-dist = [
     { name = "aah-contracts", editable = "core/contracts/python" },
     { name = "audio-adapter", editable = "adapters/audio" },
+    { name = "camera-adapter", editable = "adapters/camera" },
+    { name = "eye-tracking", editable = "services/eye-tracking" },
 ]
 
 [package.metadata.requires-dev]
@@ -101,10 +105,14 @@ version = "0.1.0"
 source = { editable = "services/eye-tracking" }
 dependencies = [
     { name = "aah-contracts" },
+    { name = "camera-adapter" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "aah-contracts", editable = "core/contracts/python" }]
+requires-dist = [
+    { name = "aah-contracts", editable = "core/contracts/python" },
+    { name = "camera-adapter", editable = "adapters/camera" },
+]
 
 [[package]]
 name = "fastapi"

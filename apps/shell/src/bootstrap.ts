@@ -12,6 +12,8 @@
 import { Kernel } from '@aah/kernel';
 import { ModeCoordinator } from '@aah/coordinator';
 import { ColorblindContrastService } from '@aah/colorblind-contrast';
+import { PointingMagnifierService } from '@aah/pointing-magnifier';
+import { InputPersonalizationService } from '@aah/input-personalization';
 import type { Resource } from '@aah/contracts';
 import { OverlaySurface } from './overlay-surface.js';
 
@@ -47,6 +49,8 @@ export async function createHub(): Promise<Hub> {
 
   // In-shell TS services register here. New services slot in without kernel edits.
   await kernel.install(new ColorblindContrastService());
+  await kernel.install(new PointingMagnifierService());
+  await kernel.install(new InputPersonalizationService());
 
   kernel.start();
   return { kernel, coordinator, overlay };

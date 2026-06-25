@@ -32,3 +32,19 @@ class OverlayLayer:
 OVERLAY_ATTACH = "overlay/attach"
 OVERLAY_UPDATE = "overlay/update"
 OVERLAY_DETACH = "overlay/detach"
+
+
+@dataclass(frozen=True, slots=True)
+class TargetHint:
+    """Gaze-derived hint about the screen point the user is looking at / aiming for.
+
+    Mirror of the TS ``input/target-hint`` payload.
+    """
+
+    source: str
+    x: float
+    y: float
+    confidence: float
+
+
+INPUT_TARGET_HINT = "input/target-hint"

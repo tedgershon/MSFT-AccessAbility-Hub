@@ -53,9 +53,15 @@ importers:
       '@aah/coordinator':
         specifier: workspace:*
         version: link:../../core/coordinator
+      '@aah/input-personalization':
+        specifier: workspace:*
+        version: link:../../services/input-personalization
       '@aah/kernel':
         specifier: workspace:*
         version: link:../../core/kernel
+      '@aah/pointing-magnifier':
+        specifier: workspace:*
+        version: link:../../services/pointing-magnifier
     devDependencies:
       electron:
         specifier: ^30.0.0
@@ -99,6 +105,26 @@ importers:
         version: link:../../core/contracts
 
   services/colorblind-contrast:
+    dependencies:
+      '@aah/contracts':
+        specifier: workspace:*
+        version: link:../../core/contracts
+    devDependencies:
+      '@aah/test-fixtures':
+        specifier: workspace:*
+        version: link:../../tests/fixtures
+
+  services/input-personalization:
+    dependencies:
+      '@aah/contracts':
+        specifier: workspace:*
+        version: link:../../core/contracts
+    devDependencies:
+      '@aah/test-fixtures':
+        specifier: workspace:*
+        version: link:../../tests/fixtures
+
+  services/pointing-magnifier:
     dependencies:
       '@aah/contracts':
         specifier: workspace:*

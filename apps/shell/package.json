@@ -15,7 +15,9 @@
     "@aah/contracts": "workspace:*",
     "@aah/coordinator": "workspace:*",
     "@aah/kernel": "workspace:*",
-    "@aah/colorblind-contrast": "workspace:*"
+    "@aah/colorblind-contrast": "workspace:*",
+    "@aah/pointing-magnifier": "workspace:*",
+    "@aah/input-personalization": "workspace:*"
   },
   "devDependencies": {
     "electron": "^30.0.0"
