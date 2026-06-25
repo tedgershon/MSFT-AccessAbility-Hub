@@ -60,7 +60,7 @@ function createWindow(activeHub: Hub): void {
     height: 720,
     title: 'AccessAbility Hub',
     webPreferences: {
-      preload: fileURLToPath(new URL('./preload.js', import.meta.url)),
+      preload: fileURLToPath(new URL('./preload.mjs', import.meta.url)),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
