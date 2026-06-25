@@ -80,6 +80,7 @@ export interface OverlayDescriptor {
  * Known kinds:
  * - `color-correction` -> full-window CSS `filter` derived from `params.strategy`.
  * - `caption` -> label taken from `params.text`.
+ * - `sound-alert` -> label taken from `params.label` (non-speech sound cue).
  * - `flash-guard` -> full-window black dim whose alpha tracks `params.intensity`.
  */
 export function describeOverlayLayer(view: OverlayLayerView): OverlayDescriptor {
@@ -98,6 +99,10 @@ export function describeOverlayLayer(view: OverlayLayerView): OverlayDescriptor 
     case 'caption': {
       const text = typeof view.params?.text === 'string' ? view.params.text : '';
       return { kind: view.kind, label: text };
+    }
+    case 'sound-alert': {
+      const sound = typeof view.params?.label === 'string' ? view.params.label : 'sound';
+      return { kind: view.kind, label: `Sound: ${sound}` };
     }
     case 'flash-guard': {
       // The guard's protective dim: a full-window black layer whose opacity rises

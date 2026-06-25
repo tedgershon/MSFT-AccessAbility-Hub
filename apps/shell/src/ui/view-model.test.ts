@@ -105,6 +105,17 @@ describe('describeOverlayLayer', () => {
     expect(d).toEqual({ kind: 'caption', label: 'live caption' });
   });
 
+  it('uses params.label as the label for a sound-alert layer', () => {
+    const d = describeOverlayLayer({
+      id: 's1',
+      ownerId: 'svc',
+      kind: 'sound-alert',
+      params: { label: 'doorbell', confidence: 0.9 },
+    });
+
+    expect(d).toEqual({ kind: 'sound-alert', label: 'Sound: doorbell' });
+  });
+
   it('maps flash-guard intensity to a black dim overlay', () => {
     const d = describeOverlayLayer({
       id: 'fg1',
