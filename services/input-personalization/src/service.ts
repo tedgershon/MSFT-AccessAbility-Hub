@@ -21,6 +21,7 @@ import {
   degraded,
   type HealthStatus,
   healthy,
+  type InputProfile as InputProfileShape,
   type ServiceContext,
   type ServiceMeta,
 } from '@aah/contracts';
@@ -28,20 +29,13 @@ import { InputShaper, type InputShaperOptions } from './shaper.js';
 
 export type InputProfileId = 'default' | 'tremor' | 'switch-access';
 
-export interface InputProfile {
+/**
+ * The `input/profile` wire shape (the single source of truth in `@aah/contracts`)
+ * narrowed to the profile ids this service actually offers. The field set lives in
+ * contracts so it stays in lock-step with the bus payload; we only refine `id`.
+ */
+export interface InputProfile extends InputProfileShape {
   id: InputProfileId;
-  /** Time the pointer must hover a target before a dwell-click fires. */
-  dwellMs: number;
-  /** Time a press must be held before it counts as a deliberate click-and-hold. */
-  clickHoldMs: number;
-  /** Suppress repeated keydown events firing within this window (debounce). */
-  keyRepeatFilterMs: number;
-  /** Angle Mouse minimum gain in `(0, 1]`; `1` disables dynamic gain. */
-  angleGainFloor: number;
-  /** Steady Clicks slip tolerance in px; `<= 0` disables slip rejection. */
-  clickSlipMaxPx: number;
-  /** Enhanced Area Cursor activation radius in px; `0` is a point cursor. */
-  areaCursorRadiusPx: number;
 }
 
 const PROFILES: Record<InputProfileId, InputProfile> = {
