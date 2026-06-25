@@ -31,6 +31,25 @@ export interface OverlayLayer {
 }
 
 /**
+ * A per-user input-remapping profile for motor/dexterity needs.
+ *
+ * Owned conceptually by the `input-personalization` service (issue #25), but the
+ * shape lives here because it travels over the bus as the `input/profile` payload
+ * so any input-shaping consumer can apply it without depending on that service.
+ * All durations are milliseconds; `0` disables that stage.
+ */
+export interface InputProfile {
+  /** Profile identifier (e.g. `'default' | 'tremor' | 'switch-access'`). */
+  id: string;
+  /** Time the pointer must hover a target before a dwell-click fires. */
+  dwellMs: number;
+  /** Time a press must be held before it counts as a deliberate click. */
+  clickHoldMs: number;
+  /** Suppress repeated keydown events firing within this window (debounce). */
+  keyRepeatFilterMs: number;
+}
+
+/**
  * The canonical event map: `topic -> payload`. Add a topic here and both the bus
  * and every subscriber stay type-safe.
  */
@@ -46,6 +65,8 @@ export interface EventMap {
   'input/intent': { source: string; kind: 'cursor' | 'keyboard'; payload: unknown };
   /** Gaze-derived hint about the screen point the user is looking at / aiming for. */
   'input/target-hint': { source: string; x: number; y: number; confidence: number };
+  /** Active input-remapping profile, broadcast when it is selected or changed. */
+  'input/profile': { source: string; profile: InputProfile };
   /** Mount a renderable layer on the shared overlay surface. */
   'overlay/attach': OverlayLayer;
   /** Replace the content of an already-attached layer (e.g. live captions). */

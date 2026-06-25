@@ -48,3 +48,20 @@ class TargetHint:
 
 
 INPUT_TARGET_HINT = "input/target-hint"
+
+
+@dataclass(frozen=True, slots=True)
+class InputProfile:
+    """A per-user input-remapping profile for motor/dexterity needs.
+
+    Mirror of the TS ``InputProfile`` carried as the ``input/profile`` payload. All
+    durations are milliseconds; ``0`` disables that shaping stage.
+    """
+
+    id: str
+    dwell_ms: int
+    click_hold_ms: int
+    key_repeat_filter_ms: int
+
+
+INPUT_PROFILE = "input/profile"

@@ -7,10 +7,12 @@ to the kernel exclusively across the event-bus / IPC seam — never via direct c
 
 from .capability import AccessMode, Capability, Resource
 from .events import (
+    INPUT_PROFILE,
     INPUT_TARGET_HINT,
     OVERLAY_ATTACH,
     OVERLAY_DETACH,
     OVERLAY_UPDATE,
+    InputProfile,
     OverlayLayer,
     TargetHint,
 )
@@ -27,6 +29,8 @@ __all__ = [
     "OVERLAY_DETACH",
     "TargetHint",
     "INPUT_TARGET_HINT",
+    "InputProfile",
+    "INPUT_PROFILE",
     "HealthState",
     "HealthStatus",
     "degraded",
