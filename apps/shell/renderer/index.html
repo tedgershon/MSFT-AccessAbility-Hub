@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AccessAbility Hub</title>
+  <style>
+    :root {
+      --bg: #0f0f0f;
+      --surface: #1a1a1a;
+      --border: #2a2a2a;
+      --text: #f0f0f0;
+      --muted: #777;
+      --accent: #3b82f6;
+      --green: #22c55e;
+      --orange: #fb923c;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 28px 20px;
+      -webkit-app-region: drag;
+    }
+    h1 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+    .subtitle { font-size: 12px; color: var(--muted); margin-top: 3px; margin-bottom: 24px; }
+    .tiles { display: flex; flex-direction: column; gap: 10px; -webkit-app-region: no-drag; }
+
+    .tile {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      transition: border-color 0.15s;
+    }
+    .tile.enabled { border-color: #1d4ed8; }
+
+    .tile-info { flex: 1; min-width: 0; }
+    .tile-name { font-size: 14px; font-weight: 500; }
+    .tile-id { font-size: 11px; color: var(--muted); margin-top: 2px; font-family: 'SF Mono', monospace; }
+
+    .badge {
+      display: inline-block;
+      margin-top: 6px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: var(--border);
+      color: var(--muted);
+    }
+    .badge.enabled { background: #14532d; color: var(--green); }
+    .badge.degraded { background: #431407; color: var(--orange); }
+
+    /* pill toggle */
+    .toggle {
+      position: relative;
+      width: 48px;
+      height: 26px;
+      border-radius: 13px;
+      border: none;
+      cursor: pointer;
+      flex-shrink: 0;
+      background: #333;
+      transition: background 0.2s;
+      outline: none;
+    }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      top: 3px;
+      left: 3px;
+      transition: transform 0.2s;
+    }
+    .toggle.on { background: var(--accent); }
+    .toggle.on::after { transform: translateX(22px); }
+    .toggle:disabled { opacity: 0.35; cursor: not-allowed; }
+    .toggle:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
+
+    .empty { text-align: center; color: var(--muted); padding: 48px 0; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>AccessAbility Hub</h1>
+  <p class="subtitle">Toggle services on or off</p>
+  <div class="tiles" id="tiles">
+    <p class="empty">Loading…</p>
+  </div>
+
+  <script>
+    const tilesEl = document.getElementById('tiles');
+    const state = new Map();
+
+    if (!window.hub) {
+      tilesEl.innerHTML = '<p class="empty" style="color:#f87171">Error: window.hub not found — preload may not have loaded.</p>';
+      throw new Error('preload missing');
+    }
+
+    async function init() {
+      const services = await Promise.race([
+        window.hub.list(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('hub:list IPC timed out — main process handler may have thrown')), 3000)
+        ),
+      ]);
+      for (const { id, name, phase } of services) {
+        state.set(id, { name, phase });
+      }
+      render();
+    }
+
+    window.hub.onPhaseChanged(({ id, phase }) => {
+      const s = state.get(id);
+      if (s) { s.phase = phase; render(); }
+    });
+
+    function render() {
+      if (state.size === 0) {
+        tilesEl.innerHTML = '<p class="empty">No services installed.</p>';
+        return;
+      }
+      tilesEl.innerHTML = '';
+      for (const [id, { name, phase }] of state) {
+        const on = phase === 'enabled';
+        const tile = document.createElement('div');
+        tile.className = `tile${on ? ' enabled' : ''}`;
+        tile.innerHTML = `
+          <div class="tile-info">
+            <div class="tile-name">${name}</div>
+            <div class="tile-id">${id}</div>
+            <span class="badge ${phase}">${phase}</span>
+          </div>
+          <button
+            class="toggle${on ? ' on' : ''}"
+            data-id="${id}"
+            aria-label="Toggle ${name}"
+            aria-pressed="${on}"
+          ></button>
+        `;
+        tilesEl.appendChild(tile);
+      }
+
+      tilesEl.querySelectorAll('.toggle').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const id = btn.dataset.id;
+          const phase = state.get(id)?.phase;
+          btn.disabled = true;
+          try {
+            if (phase === 'enabled') await window.hub.disable(id);
+            else await window.hub.enable(id);
+          } finally {
+            btn.disabled = false;
+          }
+        });
+      });
+    }
+
+    init().catch((err) => {
+      tilesEl.innerHTML = `<p class="empty" style="color:#f87171">Error: ${err?.message ?? err}</p>`;
+      console.error(err);
+    });
+  </script>
+</body>
+</html>
