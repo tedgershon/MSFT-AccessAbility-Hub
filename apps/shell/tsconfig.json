@@ -10,6 +10,7 @@
     { "path": "../../core/kernel" },
     { "path": "../../core/coordinator" },
     { "path": "../../services/colorblind-contrast" },
+    { "path": "../../services/flash-filter" },
     { "path": "../../adapters/ipc" }
   ]
 }

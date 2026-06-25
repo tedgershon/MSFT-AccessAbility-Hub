@@ -12,6 +12,7 @@
 import { Kernel } from '@aah/kernel';
 import { ModeCoordinator } from '@aah/coordinator';
 import { ColorblindContrastService } from '@aah/colorblind-contrast';
+import { FlashFilterService } from '@aah/flash-filter';
 import type { Resource } from '@aah/contracts';
 import { OverlaySurface } from './overlay-surface.js';
 import {
@@ -88,6 +89,7 @@ export async function createHub(opts: CreateHubOptions = {}): Promise<Hub> {
 
   // In-shell TS services register here. New services slot in without kernel edits.
   await kernel.install(new ColorblindContrastService());
+  await kernel.install(new FlashFilterService());
 
   // Out-of-process services attach over the IPC bridge; from the kernel's point of
   // view each is just another `AccessibilityService` behind a proxy.

@@ -9,6 +9,7 @@
     { "path": "./services/browser-ops" },
     { "path": "./services/clawpilot" },
     { "path": "./services/colorblind-contrast" },
+    { "path": "./services/flash-filter" },
     { "path": "./adapters/input-injection" },
     { "path": "./adapters/clawpilotMCP" }
   ]
