@@ -73,6 +73,7 @@ class GazeCorrelationService(AccessibilityService):
         if not callable(subscribe):
             return
         self._unsubscribes.append(subscribe("camera/frame-ref", self.ingest_camera_frame_ref))
+        self._unsubscribes.append(subscribe("camera/gaze", self.ingest_camera_gaze))
         self._unsubscribes.append(subscribe("display/frame-ref", self.ingest_display_frame_ref))
 
     def ingest_camera_frame_ref(self, payload: dict[str, Any]) -> None:

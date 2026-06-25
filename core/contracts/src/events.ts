@@ -53,6 +53,20 @@ export interface GazePoint {
   confidence: number;
 }
 
+/** A gaze estimate in camera/provider-normalized coordinate space. */
+export interface CameraGazeEstimate {
+  sourceServiceId: string;
+  capturedAtMs: number;
+  /** Normalized horizontal gaze feature in [0, 1]. */
+  x: number;
+  /** Normalized vertical gaze feature in [0, 1]. */
+  y: number;
+  /** Value in [0, 1], where 1 is highest confidence. */
+  confidence: number;
+  /** Input provider that produced the estimate. */
+  provider: 'webcam' | 'windows' | 'synthetic';
+}
+
 /** Calibration state emitted by correlation services. */
 export interface CalibrationState {
   sourceServiceId: string;
@@ -86,6 +100,8 @@ export interface EventMap {
   'camera/frame-ref': FrameReference;
   /** Metadata for a captured display frame (payload stays out-of-band). */
   'display/frame-ref': FrameReference;
+  /** Normalized camera/provider gaze estimate before screen correlation. */
+  'camera/gaze': CameraGazeEstimate;
   /** Correlated gaze point in screen coordinates. */
   'gaze/point': GazePoint;
   /** Calibration status updates for gaze-screen mapping. */

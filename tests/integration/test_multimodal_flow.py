@@ -7,14 +7,15 @@ import sys
 from pathlib import Path
 
 from aah_contracts import ServiceContext
+
 from conftest import CapturingBus
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "services" / "eye-tracking"))
 sys.path.insert(0, str(ROOT / "services" / "gaze-correlation"))
 
-from eye_tracking import EyeTrackingService
-from gaze_correlation import GazeCorrelationService
+from eye_tracking import EyeTrackingService  # noqa: E402
+from gaze_correlation import GazeCorrelationService  # noqa: E402
 
 
 def _ctx(service_id: str, bus: CapturingBus) -> ServiceContext:

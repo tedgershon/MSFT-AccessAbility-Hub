@@ -23,12 +23,17 @@ const ROUTES: readonly PythonServiceRoute[] = [
   {
     module: 'eye_tracking',
     toProcess: [],
-    fromProcess: ['camera/frame-ref', 'calibration/state'],
+    fromProcess: ['camera/frame-ref', 'camera/gaze', 'calibration/state'],
   },
   {
     module: 'gaze_correlation',
-    toProcess: ['camera/frame-ref', 'display/frame-ref'],
+    toProcess: ['camera/frame-ref', 'camera/gaze', 'display/frame-ref'],
     fromProcess: ['gaze/point', 'calibration/state'],
+  },
+  {
+    module: 'gaze_dwell',
+    toProcess: ['gaze/point', 'calibration/state'],
+    fromProcess: ['input/intent', 'input/context'],
   },
 ];
 

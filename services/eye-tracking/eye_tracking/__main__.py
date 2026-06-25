@@ -6,7 +6,7 @@ across the IPC seam (event bus), never via direct calls.
 
 from __future__ import annotations
 
-from aah_contracts import CALIBRATION_STATE, CAMERA_FRAME_REF
+from aah_contracts import CALIBRATION_STATE, CAMERA_FRAME_REF, CAMERA_GAZE
 from aah_host import run_stdio_host
 
 from . import EyeTrackingService
@@ -18,7 +18,7 @@ def main() -> None:
     run_stdio_host(
         [EyeTrackingService()],
         inbound=[],
-        outbound=[CAMERA_FRAME_REF, CALIBRATION_STATE],
+        outbound=[CAMERA_FRAME_REF, CAMERA_GAZE, CALIBRATION_STATE],
     )
 
 
