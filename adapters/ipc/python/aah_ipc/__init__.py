@@ -319,6 +319,7 @@ def run_stdio_host(
     channel.serve()
 
 
+    
 __all__ = [
     "LifecyclePhase",
     "EventFrame",
