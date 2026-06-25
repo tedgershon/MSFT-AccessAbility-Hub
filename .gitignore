@@ -1,6 +1,7 @@
 # Node / TS
 node_modules/
 dist/
+dist-renderer/
 *.tsbuildinfo
 .turbo/
 
