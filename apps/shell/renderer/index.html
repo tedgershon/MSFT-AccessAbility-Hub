@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'"
+    />
+    <title>AccessAbility Hub</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <h1>AccessAbility Hub</h1>
+      <p class="subtitle">Microkernel accessibility services</p>
+    </header>
+
+    <main class="app-body">
+      <section class="panel" aria-labelledby="services-heading">
+        <h2 id="services-heading">Services</h2>
+        <ul id="service-list" class="service-list"></ul>
+      </section>
+
+      <section class="panel" aria-labelledby="overlay-heading">
+        <h2 id="overlay-heading">Overlay layers</h2>
+        <ul id="overlay-list" class="overlay-list"></ul>
+      </section>
+    </main>
+
+    <!-- Compiled by tsconfig.renderer.json into ../dist-renderer/. -->
+    <script type="module" src="../dist-renderer/renderer/renderer.js"></script>
+  </body>
+</html>
