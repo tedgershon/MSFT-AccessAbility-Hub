@@ -2,9 +2,9 @@
 
 Runs as its own process and talks to the kernel only across the IPC seam (event
 bus), never via direct calls. :func:`aah_ipc.run_stdio_host` hosts the service over
-stdio: inbound ``lifecycle`` frames drive its hooks, and the service's own window loop
-(started on enable) polls the real camera + mic via :class:`AdapterPerception`,
-emitting overlay events back across the seam.
+stdio: inbound ``lifecycle`` frames drive its hooks, and the host's periodic pump
+calls :meth:`ConversationCoachService.tick` while enabled to poll the real camera +
+mic via :class:`AdapterPerception`, emitting overlay events back across the seam.
 
 The perception model is wired here: :class:`WindowedSignalExtractor` fuses each live
 camera frame + audio chunk into :class:`~conversation_coach.coaching.ConversationSignal`

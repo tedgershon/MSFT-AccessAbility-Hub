@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 import json
 import sys
+import threading
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, BinaryIO, Literal, Protocol, runtime_checkable
@@ -192,6 +193,84 @@ def create_channel_pair() -> tuple[Channel, Channel]:
 
 
 # ---------------------------------------------------------------------------
+# Periodic scheduler — the shared "tick" pump owned by the host
+# ---------------------------------------------------------------------------
+@runtime_checkable
+class TickingService(Protocol):
+    """Optional service surface: opt into the host's periodic scheduler.
+
+    A compute service that needs a steady loop (poll camera/mic, run inference, emit
+    overlay updates) declares a positive ``tick_interval_s`` and implements ``tick``.
+    The :class:`ServiceHost` then drives ``tick`` on a timer **while enabled** — the
+    service never owns a thread. The host pauses the pump while disabled and stops/joins
+    it on disable/unload. A service that doesn't implement this surface is simply never
+    ticked.
+    """
+
+    tick_interval_s: float
+
+    def tick(self) -> Any: ...
+
+
+class _Scheduler:
+    """Host-owned periodic driver: calls ``tick`` every ``interval_s`` on a daemon thread.
+
+    Centralises the start/stop/join correctness that every compute service would
+    otherwise re-solve. A tick that raises is routed to ``on_error`` (default: swallow)
+    so one bad window can't kill the pump — the service's ``health_check`` surfaces a
+    lost lease and the supervisor restarts it. :meth:`stop` is idempotent and safe to
+    call from any thread except the tick thread itself (it skips the self-join).
+    """
+
+    def __init__(
+        self,
+        tick: Callable[[], Any],
+        interval_s: float,
+        *,
+        on_error: Callable[[Exception], None] | None = None,
+        join_timeout_s: float = 2.0,
+    ) -> None:
+        self._tick = tick
+        self._interval_s = max(0.0, interval_s)
+        self._on_error = on_error
+        self._join_timeout_s = join_timeout_s
+        self._thread: threading.Thread | None = None
+        self._stop = threading.Event()
+
+    @property
+    def is_running(self) -> bool:
+        thread = self._thread
+        return thread is not None and thread.is_alive()
+
+    def start(self) -> None:
+        """Spawn the pump thread. A no-op if already running."""
+        if self._thread is not None:
+            return
+        self._stop.clear()
+        self._thread = threading.Thread(
+            target=self._run, name="aah-ipc-scheduler", daemon=True
+        )
+        self._thread.start()
+
+    def _run(self) -> None:
+        while not self._stop.is_set():
+            try:
+                self._tick()
+            except Exception as exc:  # noqa: BLE001 - a bad tick must not kill the pump
+                if self._on_error is not None:
+                    self._on_error(exc)
+            self._stop.wait(self._interval_s)
+
+    def stop(self) -> None:
+        """Signal the pump to stop and join it (skipping a self-join). Idempotent."""
+        self._stop.set()
+        thread = self._thread
+        if thread is not None and thread is not threading.current_thread():
+            thread.join(timeout=self._join_timeout_s)
+        self._thread = None
+
+
+# ---------------------------------------------------------------------------
 # ServiceHost — child-side runtime
 # ---------------------------------------------------------------------------
 class _ChannelBus:
@@ -222,6 +301,12 @@ class ServiceHost:
     ``asyncio.run`` per message — no running loop is assumed, matching the existing
     sync-style tests). Injects a :class:`_ChannelBus` so the service can publish bus
     events outbound. Emits a ``health`` frame after enable/disable and on demand.
+
+    Services that need a steady loop opt into the host's periodic pump by implementing
+    the :class:`TickingService` surface (a ``tick`` method + a positive
+    ``tick_interval_s``). The host starts the pump after ``on_enable`` and stops/joins
+    it before ``on_disable`` (and on ``on_unload``/:meth:`close`), so the service never
+    owns thread lifecycle and a tick never races device teardown.
     """
 
     def __init__(
@@ -235,6 +320,7 @@ class ServiceHost:
         self._channel = channel
         self._bus = _ChannelBus(channel)
         self._config: dict[str, Any] = config if config is not None else {}
+        self._scheduler: _Scheduler | None = None
         self._unsubscribe = channel.on_message(self._on_frame)
 
     def _on_frame(self, frame: Frame) -> None:
@@ -252,19 +338,45 @@ class ServiceHost:
         elif phase == "enable":
             await self._service.on_enable()
             self.send_health()
+            # Start the pump only once the service is fully enabled (devices acquired).
+            self._start_scheduler()
         elif phase == "disable":
+            # Stop the pump first so no tick races the service's device teardown.
+            self._stop_scheduler()
             await self._service.on_disable()
             self.send_health()
         elif phase == "unload":
+            self._stop_scheduler()
             await self._service.on_unload()
+
+    def _start_scheduler(self) -> None:
+        """Begin ticking the service if it opts into the periodic pump."""
+        if self._scheduler is not None:
+            return
+        tick = getattr(self._service, "tick", None)
+        interval = getattr(self._service, "tick_interval_s", None)
+        if not callable(tick) or not isinstance(interval, (int, float)) or interval <= 0:
+            return
+        scheduler = _Scheduler(tick, float(interval))
+        scheduler.start()
+        self._scheduler = scheduler
+
+    def _stop_scheduler(self) -> None:
+        """Stop and join the pump if running. Idempotent."""
+        scheduler = self._scheduler
+        if scheduler is not None:
+            scheduler.stop()
+            self._scheduler = None
 
     def send_health(self) -> None:
         """Emit a ``health`` frame reflecting the service's current health."""
         self._channel.send(HealthFrame(status=self._service.health_check()))
 
     def close(self) -> None:
-        """Stop listening for frames from the channel."""
+        """Stop the pump and stop listening for frames from the channel."""
+        self._stop_scheduler()
         self._unsubscribe()
+
 
 
 # ---------------------------------------------------------------------------
@@ -296,12 +408,17 @@ class StdioChannel:
         self._handlers: set[FrameHandler] = set()
         self._on_error = on_error
         self._closed = False
+        # The host's periodic scheduler may emit from its own thread while the serve
+        # loop writes health frames — serialize writes so lines never interleave.
+        self._write_lock = threading.Lock()
 
     def send(self, frame: Frame) -> None:
         if self._closed:
             return
-        self._output.write(encode_frame(frame).encode("utf-8") + b"\n")
-        self._output.flush()
+        data = encode_frame(frame).encode("utf-8") + b"\n"
+        with self._write_lock:
+            self._output.write(data)
+            self._output.flush()
 
     def on_message(self, handler: FrameHandler) -> Callable[[], None]:
         self._handlers.add(handler)
@@ -365,6 +482,7 @@ __all__ = [
     "decode_frame",
     "Channel",
     "create_channel_pair",
+    "TickingService",
     "ServiceHost",
     "StdioChannel",
     "run_stdio_host",
