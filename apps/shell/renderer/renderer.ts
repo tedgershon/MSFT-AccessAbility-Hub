@@ -140,19 +140,37 @@ describeButton?.addEventListener('click', () => {
   void window.hub.describe();
 });
 
-window.hub.onSpeak((req: SpeakRequest) => {
+function speakRequest(req: SpeakRequest): void {
   if (describeStatus) describeStatus.textContent = req.text;
   if (typeof speechSynthesis === 'undefined') return;
+
   const utterance = new SpeechSynthesisUtterance(req.text);
   if (req.rate !== undefined) utterance.rate = req.rate;
   if (req.pitch !== undefined) utterance.pitch = req.pitch;
-  if (req.voice) {
-    const voice = speechSynthesis.getVoices().find((v) => v.name === req.voice);
+  utterance.onerror = (event) => {
+    console.error('[renderer] speech synthesis error:', event.error);
+  };
+
+  const start = (): void => {
+    const voices = speechSynthesis.getVoices();
+    const voice = req.voice
+      ? voices.find((v) => v.name === req.voice)
+      : (voices.find((v) => v.default) ?? voices[0]);
     if (voice) utterance.voice = voice;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(utterance);
+  };
+
+  // Chromium/Electron load voices asynchronously; if none are ready yet, the first
+  // speak() can be dropped. Wait once for `voiceschanged`, otherwise speak now.
+  if (speechSynthesis.getVoices().length === 0) {
+    speechSynthesis.addEventListener('voiceschanged', start, { once: true });
+  } else {
+    start();
   }
-  speechSynthesis.cancel();
-  speechSynthesis.speak(utterance);
-});
+}
+
+window.hub.onSpeak(speakRequest);
 
 window.hub.onSpeakCancel(() => {
   if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();

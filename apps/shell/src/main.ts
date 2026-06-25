@@ -67,7 +67,7 @@ function createWindow(activeHub: Hub): void {
     height: 720,
     title: 'AccessAbility Hub',
     webPreferences: {
-      preload: fileURLToPath(new URL('./preload.js', import.meta.url)),
+      preload: fileURLToPath(new URL('./preload.mjs', import.meta.url)),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
@@ -154,14 +154,19 @@ function buildArtInSightService(): ArtInSightService {
   return new ArtInSightService({ capture, tts, describer: buildScreenDescriber() });
 }
 
-/** Pick a vision describer from env; undefined => the service uses a canned fallback. */
+/**
+ * Pick a vision describer from env; undefined => the service uses a canned fallback.
+ * Set ARTINSIGHT_VISION_ENDPOINT to a local OpenAI-compatible server (Foundry Local,
+ * Ollama, ...) — which ignore the key — or set an OpenAI/Azure key for the cloud.
+ */
 function buildScreenDescriber(): SceneDescriber | undefined {
+  const endpoint = process.env.ARTINSIGHT_VISION_ENDPOINT;
   const apiKey = process.env.ARTINSIGHT_OPENAI_API_KEY ?? process.env.OPENAI_API_KEY;
-  if (!apiKey) return undefined;
+  if (!endpoint && !apiKey) return undefined;
   return new OpenAIVisionDescriber({
-    apiKey,
+    apiKey: apiKey ?? 'none',
+    endpoint,
     model: process.env.ARTINSIGHT_VISION_MODEL,
-    endpoint: process.env.ARTINSIGHT_VISION_ENDPOINT,
   });
 }
 
