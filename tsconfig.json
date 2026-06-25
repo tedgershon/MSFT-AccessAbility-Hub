@@ -1,6 +1,7 @@
 {
   "files": [],
   "references": [
+    { "path": "./services/artinsight" },
     { "path": "./core/contracts" },
     { "path": "./core/kernel" },
     { "path": "./core/coordinator" },
@@ -10,6 +11,8 @@
     { "path": "./services/clawpilot" },
     { "path": "./services/colorblind-contrast" },
     { "path": "./adapters/input-injection" },
-    { "path": "./adapters/clawpilotMCP" }
+    { "path": "./adapters/clawpilotMCP" },
+    { "path": "./adapters/display-capture" },
+    { "path": "./adapters/tts" }
   ]
 }

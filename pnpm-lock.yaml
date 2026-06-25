@@ -43,6 +43,8 @@ importers:
         specifier: ^20.0.0
         version: 20.19.43
 
+  adapters/display-capture: {}
+
   adapters/input-injection:
     dependencies:
       '@aah/contracts':
@@ -64,6 +66,8 @@ importers:
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
+
+  adapters/tts: {}
 
   apps/shell:
     dependencies:
@@ -104,6 +108,22 @@ importers:
       '@aah/contracts':
         specifier: workspace:*
         version: link:../contracts
+    devDependencies:
+      '@aah/test-fixtures':
+        specifier: workspace:*
+        version: link:../../tests/fixtures
+
+  services/artinsight:
+    dependencies:
+      '@aah/contracts':
+        specifier: workspace:*
+        version: link:../../core/contracts
+      '@aah/display-capture':
+        specifier: workspace:*
+        version: link:../../adapters/display-capture
+      '@aah/tts':
+        specifier: workspace:*
+        version: link:../../adapters/tts
     devDependencies:
       '@aah/test-fixtures':
         specifier: workspace:*
