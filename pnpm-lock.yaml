@@ -54,6 +54,9 @@ importers:
       '@aah/test-fixtures':
         specifier: workspace:*
         version: link:../../tests/fixtures
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.43
 
   apps/shell:
     dependencies:
