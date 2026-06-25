@@ -10,7 +10,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   type ConfigStore,
+  type EventBus,
+  type EventHandler,
   type EventPayload,
+  type EventTopic,
   type ServiceContext,
 } from '@aah/contracts';
 import { CapturingBus } from '@aah/test-fixtures';
@@ -111,6 +114,61 @@ describe('FlashFilterService', () => {
     const events = detachEvents(bus);
     expect(events).toHaveLength(1);
     expect(events[0]).toEqual({ id: LAYER_ID, ownerId: 'flash-filter' });
+  });
+
+  it('routes display/luminance bus samples into detection while enabled', async () => {
+    const { ctx, bus } = makeCtx();
+    const svc = new FlashFilterService();
+    await svc.onLoad(ctx);
+    await svc.onEnable();
+
+    // 10 flashes/s delivered over the bus (NOT via a direct ingestLuminance call).
+    const stepMs = 1000 / 10 / 2;
+    const steps = Math.round(1000 / stepMs);
+    for (let i = 0; i < steps; i++) {
+      bus.emit('display/luminance', {
+        sourceId: 'screen-1',
+        luminance: i % 2 === 0 ? 0 : 1,
+        atMs: i * stepMs,
+      });
+    }
+
+    expect(svc.healthCheck().detail).toContain('guarding');
+    expect(updateEvents(bus).length).toBeGreaterThan(0);
+  });
+
+  it('releases the display/luminance subscription in onDisable (no listener leak)', async () => {
+    // Wrap a CapturingBus to count how many live `display/luminance` listeners exist.
+    const inner = new CapturingBus();
+    let liveLuminanceListeners = 0;
+    const bus: EventBus = {
+      emit<T extends EventTopic>(topic: T, payload: EventPayload<T>): void {
+        inner.emit(topic, payload);
+      },
+      on<T extends EventTopic>(topic: T, handler: EventHandler<T>): () => void {
+        const off = inner.on(topic, handler);
+        if (topic === 'display/luminance') {
+          liveLuminanceListeners++;
+          return () => {
+            liveLuminanceListeners--;
+            off();
+          };
+        }
+        return off;
+      },
+      off<T extends EventTopic>(topic: T, handler: EventHandler<T>): void {
+        inner.off(topic, handler);
+      },
+    };
+    const ctx: ServiceContext = { bus, config: fakeConfig(), selfId: 'flash-filter' };
+    const svc = new FlashFilterService();
+    await svc.onLoad(ctx);
+
+    await svc.onEnable();
+    expect(liveLuminanceListeners).toBe(1);
+
+    await svc.onDisable();
+    expect(liveLuminanceListeners).toBe(0);
   });
 
   it('raises the dim filter when flashing exceeds the safe threshold', async () => {

@@ -4,13 +4,15 @@
     "rootDir": "./src",
     "outDir": "./dist"
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.mts"],
   "references": [
     { "path": "../../core/contracts" },
     { "path": "../../core/kernel" },
     { "path": "../../core/coordinator" },
     { "path": "../../services/colorblind-contrast" },
     { "path": "../../services/flash-filter" },
+    { "path": "../../services/creative-studio" },
+    { "path": "../../adapters/display-capture" },
     { "path": "../../adapters/ipc" }
   ]
 }

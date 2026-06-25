@@ -6,7 +6,13 @@ requires-python = ">=3.11"
 # The root project is the Python test harness aggregator; it pulls in the shared
 # contracts package (for conftest fixtures) plus every Python package whose module
 # is imported by a test, so `uv sync` installs them for the suite.
-dependencies = ["aah-contracts", "audio-adapter", "aah-ipc"]
+dependencies = [
+  "aah-contracts",
+  "audio-adapter",
+  "camera-adapter",
+  "aah-ipc",
+  "conversation-coach",
+]
 
 # uv workspace: the Python half of the monorepo. Keyed on pyproject.toml so it
 # coexists cleanly with the pnpm/turbo TS workspace.
@@ -20,12 +26,15 @@ members = [
   "adapters/camera",
   "adapters/audio",
   "adapters/ipc/python",
+  "services/conversation-coach",
 ]
 
 [tool.uv.sources]
 aah-contracts = { workspace = true }
 audio-adapter = { workspace = true }
+camera-adapter = { workspace = true }
 aah-ipc = { workspace = true }
+conversation-coach = { workspace = true }
 
 [dependency-groups]
 dev = [

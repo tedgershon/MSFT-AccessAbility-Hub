@@ -17,9 +17,11 @@
  */
 
 import { fileURLToPath } from 'node:url';
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, desktopCapturer } from 'electron';
 import type { EventTopic } from '@aah/contracts';
+import { DisplayCaptureAdapter, ElectronDisplayCaptureBackend } from '@aah/display-capture';
 import { createHub, type Hub } from './bootstrap.js';
+import { DisplayLuminancePublisher } from './display-luminance-publisher.js';
 import { IPC } from './ui/ipc-contract.js';
 import { overlayLayerToView, toServiceViews } from './ui/view-model.js';
 
@@ -32,9 +34,16 @@ const UI_TOPICS: EventTopic[] = [
   'overlay/detach',
 ];
 
+/** The only consumer of `display/luminance`; capture is gated on its enabled state. */
+const FLASH_FILTER_ID = 'flash-filter';
+
 let hub: Hub | null = null;
 let win: BrowserWindow | null = null;
 let quitting = false;
+/** Emits `display/luminance` from the primary screen onto the hub bus, or null when idle. */
+let luminancePublisher: DisplayLuminancePublisher | null = null;
+/** Serializes capture start/stop so rapid enable/disable toggles can't race. */
+let captureSync: Promise<void> = Promise.resolve();
 
 /** Push the current service rows to the renderer. */
 function pushServices(target: BrowserWindow): void {
@@ -60,7 +69,7 @@ function createWindow(activeHub: Hub): void {
     height: 720,
     title: 'AccessAbility Hub',
     webPreferences: {
-      preload: fileURLToPath(new URL('./preload.js', import.meta.url)),
+      preload: fileURLToPath(new URL('./preload.mjs', import.meta.url)),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
@@ -95,12 +104,104 @@ function wireActions(): void {
   });
 }
 
+/**
+ * Electron `desktopCapturer` bindings that yield RAW BGRA pixels (not an encoded
+ * PNG/JPEG) so per-pixel relative luminance can be computed downstream.
+ */
+function createDesktopCaptureBindings(): ConstructorParameters<
+  typeof ElectronDisplayCaptureBackend
+>[0] {
+  return {
+    async listSources() {
+      const sources = await desktopCapturer.getSources({
+        types: ['screen'],
+        thumbnailSize: { width: 320, height: 180 },
+      });
+      return sources.map((source) => ({
+        id: source.id,
+        name: source.name,
+        displayId: source.display_id || undefined,
+      }));
+    },
+    async captureFrame(sourceId: string) {
+      const sources = await desktopCapturer.getSources({
+        types: ['screen'],
+        thumbnailSize: { width: 320, height: 180 },
+      });
+      const source = sources.find((candidate) => candidate.id === sourceId);
+      if (!source) return null;
+      const image = source.thumbnail;
+      const size = image.getSize();
+      return {
+        capturedAtMs: Date.now(),
+        width: size.width,
+        height: size.height,
+        // Raw bitmap pixels keep this a real luminance source, not an opaque blob.
+        data: new Uint8Array(image.toBitmap()),
+      };
+    },
+  };
+}
+
+/** Begin publishing `display/luminance` from the primary screen onto the bus. */
+async function startLuminanceCapture(activeHub: Hub): Promise<void> {
+  const capture = new DisplayCaptureAdapter(
+    new ElectronDisplayCaptureBackend(createDesktopCaptureBindings()),
+  );
+  const sources = await capture.listSources();
+  const primary = sources[0];
+  if (!primary) {
+    console.warn('[shell] no display capture source; luminance publishing disabled');
+    return;
+  }
+  luminancePublisher = new DisplayLuminancePublisher(activeHub.kernel.bus, capture);
+  await luminancePublisher.start(primary.id, 250);
+}
+
+/** Stop publishing and release the capture adapter. */
+async function stopLuminanceCapture(): Promise<void> {
+  const publisher = luminancePublisher;
+  luminancePublisher = null;
+  await publisher?.stop();
+}
+
+/**
+ * Reconcile screen capture with the flash-filter guard's phase: capture only while
+ * the guard (its sole consumer) is enabled, and release it the moment it's disabled.
+ * Keeps the screen-capture seam off when nothing needs it (privacy + power), in line
+ * with the project's "release leases in onDisable" discipline. Start/stop are
+ * serialized so rapid toggles can't overlap.
+ */
+function syncLuminanceCapture(activeHub: Hub): void {
+  const enabled = activeHub.kernel.registry.get(FLASH_FILTER_ID)?.phase === 'enabled';
+  captureSync = captureSync
+    .then(async () => {
+      if (enabled && !luminancePublisher) {
+        await startLuminanceCapture(activeHub);
+      } else if (!enabled && luminancePublisher) {
+        await stopLuminanceCapture();
+      }
+    })
+    .catch((err: unknown) =>
+      console.error('[shell] luminance capture sync failed:', err),
+    );
+}
+
 app
   .whenReady()
   .then(async () => {
-    hub = await createHub();
+    const activeHub = await createHub();
+    hub = activeHub;
     wireActions();
-    createWindow(hub);
+    createWindow(activeHub);
+
+    // Gate screen capture on the flash-filter guard: only feed `display/luminance`
+    // while its sole consumer is enabled, and stop capturing when it's toggled off.
+    activeHub.kernel.bus.on('service/phase-changed', ({ serviceId }) => {
+      if (serviceId === FLASH_FILTER_ID) syncLuminanceCapture(activeHub);
+    });
+    // createHub auto-enables services before we subscribed above, so reconcile once.
+    syncLuminanceCapture(activeHub);
 
     // macOS convention: re-open a window when the dock icon is clicked.
     app.on('activate', () => {
@@ -119,8 +220,11 @@ app.on('before-quit', (event) => {
   quitting = true;
   const closing = hub;
   hub = null;
-  closing
-    .stop()
+  Promise.resolve(stopLuminanceCapture())
+    .catch((err: unknown) =>
+      console.error('[shell] error stopping luminance publisher:', err),
+    )
+    .then(() => closing.stop())
     .catch((err: unknown) => console.error('[shell] error during shutdown:', err))
     .finally(() => app.quit());
 });
