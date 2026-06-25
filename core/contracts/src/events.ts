@@ -44,6 +44,10 @@ export interface EventMap {
   'coordinator/mode-switch-requested': { channel: string; candidates: string[] };
   /** Generic input intent, multiplexed before it ever reaches the OS. */
   'input/intent': { source: string; kind: 'cursor' | 'keyboard'; payload: unknown };
+  /** Shell or shortcut handler emits this with the text the user wants transformed. */
+  'simplifyText/request': { text: string };
+  /** Service emits this after transforming, so the shell can confirm the result. */
+  'simplifyText/result': { original: string; transformed: string; mode: string };
   /** Mount a renderable layer on the shared overlay surface. */
   'overlay/attach': OverlayLayer;
   /** Replace the content of an already-attached layer (e.g. live captions). */
