@@ -8,6 +8,8 @@ process so a CV segfault cannot take down voice control or the shell. Declares
 
 from __future__ import annotations
 
+from time import time_ns
+
 from aah_contracts import (
     AccessibilityService,
     Capability,
@@ -35,9 +37,14 @@ class EyeTrackingService(AccessibilityService):
     async def on_enable(self) -> None:
         # TODO: open the camera + start the gaze pipeline.
         self._active = True
+        self._emit_calibration_state("collecting")
+        # Skeleton plumbing: publish one bootstrap frame reference so downstream
+        # consumers (correlation service, telemetry) can validate bus wiring.
+        self.publish_frame_ref(width=640, height=360, frame_id="bootstrap")
 
     async def on_disable(self) -> None:
         # TODO: stop the pipeline and RELEASE the camera (rule 5).
+        self._emit_calibration_state("idle")
         self._active = False
 
     async def on_unload(self) -> None:
@@ -45,3 +52,34 @@ class EyeTrackingService(AccessibilityService):
 
     def health_check(self) -> HealthStatus:
         return healthy("tracking" if self._active else "idle")
+
+    def publish_frame_ref(self, *, width: int, height: int, frame_id: str | None = None) -> None:
+        """Publish camera frame metadata onto the shared event bus.
+
+        The actual frame bytes stay out-of-band; this metadata is enough for
+        correlation and command-context pipelines to align data streams.
+        """
+        if self._ctx is None:
+            return
+        self._ctx.bus.emit(
+            "camera/frame-ref",
+            {
+                "sourceServiceId": self.meta.id,
+                "capturedAtMs": time_ns() // 1_000_000,
+                "frameId": frame_id,
+                "width": width,
+                "height": height,
+            },
+        )
+
+    def _emit_calibration_state(self, state: str) -> None:
+        if self._ctx is None:
+            return
+        self._ctx.bus.emit(
+            "calibration/state",
+            {
+                "sourceServiceId": self.meta.id,
+                "capturedAtMs": time_ns() // 1_000_000,
+                "state": state,
+            },
+        )
