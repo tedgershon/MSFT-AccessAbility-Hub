@@ -2,6 +2,7 @@
   "files": [],
   "references": [
     { "path": "./services/adaptive-learning" },
+    { "path": "./services/creative-studio" },
     { "path": "./core/contracts" },
     { "path": "./core/kernel" },
     { "path": "./core/coordinator" },
@@ -10,7 +11,11 @@
     { "path": "./services/browser-ops" },
     { "path": "./services/clawpilot" },
     { "path": "./services/colorblind-contrast" },
+    { "path": "./services/flash-filter" },
+    { "path": "./adapters/display-capture" },
     { "path": "./adapters/input-injection" },
-    { "path": "./adapters/clawpilotMCP" }
+    { "path": "./adapters/clawpilotMCP" },
+    { "path": "./adapters/audio-out" },
+    { "path": "./adapters/app-introspection" }
   ]
 }

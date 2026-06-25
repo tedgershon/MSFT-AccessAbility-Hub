@@ -74,6 +74,14 @@ const ADAPTIVE_TEXT_STYLES: Record<string, Record<string, string>> = {
 /** Fallback typography when the cognitive style is missing or unrecognised. */
 const DEFAULT_ADAPTIVE_TEXT_STYLE: Record<string, string> = { lineHeight: '1.6' };
 
+/** Read a 0..1 number param, clamping out-of-range / non-numeric values to 0. */
+function clamp01Param(value: unknown): number {
+  if (typeof value !== 'number' || Number.isNaN(value)) return 0;
+  if (value < 0) return 0;
+  if (value > 1) return 1;
+  return value;
+}
+
 /** A presentation hint the renderer uses to paint a layer. */
 export interface OverlayDescriptor {
   kind: string;
@@ -91,6 +99,8 @@ export interface OverlayDescriptor {
  * - `color-correction` -> full-window CSS `filter` derived from `params.strategy`.
  * - `adaptive-text` -> typography preset derived from `params.style` (cognitive style).
  * - `caption` -> label taken from `params.text`.
+ * - `sound-alert` -> label taken from `params.label` (non-speech sound cue).
+ * - `flash-guard` -> full-window black dim whose alpha tracks `params.intensity`.
  */
 export function describeOverlayLayer(view: OverlayLayerView): OverlayDescriptor {
   switch (view.kind) {
@@ -119,6 +129,26 @@ export function describeOverlayLayer(view: OverlayLayerView): OverlayDescriptor 
     case 'caption': {
       const text = typeof view.params?.text === 'string' ? view.params.text : '';
       return { kind: view.kind, label: text };
+    }
+    case 'sound-alert': {
+      const sound = typeof view.params?.label === 'string' ? view.params.label : 'sound';
+      return { kind: view.kind, label: `Sound: ${sound}` };
+    }
+    case 'flash-guard': {
+      // The guard's protective dim: a full-window black layer whose opacity rises
+      // with the detected flash intensity (0 = transparent, 1 = full blackout).
+      const intensity = clamp01Param(view.params?.intensity);
+      const fps =
+        typeof view.params?.flashesPerSecond === 'number' ? view.params.flashesPerSecond : 0;
+      const label =
+        intensity > 0
+          ? `Flash guard (dim ${Math.round(intensity * 100)}%${fps ? `, ${fps} flashes/s` : ''})`
+          : 'Flash guard (monitoring)';
+      return {
+        kind: view.kind,
+        label,
+        style: { backgroundColor: `rgba(0, 0, 0, ${intensity.toFixed(3)})` },
+      };
     }
     default:
       return { kind: view.kind, label: view.kind };

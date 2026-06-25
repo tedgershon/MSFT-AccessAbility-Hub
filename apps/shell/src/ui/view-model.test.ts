@@ -130,6 +130,53 @@ describe('describeOverlayLayer', () => {
     expect(d.style).toEqual({ lineHeight: '1.6' });
   });
 
+  it('uses params.label as the label for a sound-alert layer', () => {
+    const d = describeOverlayLayer({
+      id: 's1',
+      ownerId: 'svc',
+      kind: 'sound-alert',
+      params: { label: 'doorbell', confidence: 0.9 },
+    });
+
+    expect(d).toEqual({ kind: 'sound-alert', label: 'Sound: doorbell' });
+  });
+
+  it('maps flash-guard intensity to a black dim overlay', () => {
+    const d = describeOverlayLayer({
+      id: 'fg1',
+      ownerId: 'flash-filter',
+      kind: 'flash-guard',
+      params: { intensity: 0.5, flashesPerSecond: 6 },
+    });
+
+    expect(d.kind).toBe('flash-guard');
+    expect(d.label).toBe('Flash guard (dim 50%, 6 flashes/s)');
+    expect(d.style?.backgroundColor).toBe('rgba(0, 0, 0, 0.500)');
+  });
+
+  it('renders a transparent monitoring flash-guard when intensity is 0', () => {
+    const d = describeOverlayLayer({
+      id: 'fg2',
+      ownerId: 'flash-filter',
+      kind: 'flash-guard',
+      params: { intensity: 0, flashesPerSecond: 0 },
+    });
+
+    expect(d.label).toBe('Flash guard (monitoring)');
+    expect(d.style?.backgroundColor).toBe('rgba(0, 0, 0, 0.000)');
+  });
+
+  it('clamps an out-of-range flash-guard intensity', () => {
+    const d = describeOverlayLayer({
+      id: 'fg3',
+      ownerId: 'flash-filter',
+      kind: 'flash-guard',
+      params: { intensity: 2 },
+    });
+
+    expect(d.style?.backgroundColor).toBe('rgba(0, 0, 0, 1.000)');
+  });
+
   it('falls back to a labelled chip for an unknown kind', () => {
     const d = describeOverlayLayer({ id: 'x1', ownerId: 'svc', kind: 'mystery' });
 
