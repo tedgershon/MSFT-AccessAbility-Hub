@@ -38,19 +38,20 @@ function makeCtx(
 }
 
 const LAYER_ID = 'colorblind-contrast:correction';
+type EmittedEvent = CapturingBus['emitted'][number];
 
 /** All `overlay/attach` payloads the service published, in order. */
 function attachEvents(bus: CapturingBus): Array<EventPayload<'overlay/attach'>> {
   return bus.emitted
-    .filter((e) => e.topic === 'overlay/attach')
-    .map((e) => e.payload as EventPayload<'overlay/attach'>);
+    .filter((e: EmittedEvent) => e.topic === 'overlay/attach')
+    .map((e: EmittedEvent) => e.payload as EventPayload<'overlay/attach'>);
 }
 
 /** All `overlay/detach` payloads the service published, in order. */
 function detachEvents(bus: CapturingBus): Array<EventPayload<'overlay/detach'>> {
   return bus.emitted
-    .filter((e) => e.topic === 'overlay/detach')
-    .map((e) => e.payload as EventPayload<'overlay/detach'>);
+    .filter((e: EmittedEvent) => e.topic === 'overlay/detach')
+    .map((e: EmittedEvent) => e.payload as EventPayload<'overlay/detach'>);
 }
 
 describe('ColorblindContrastService', () => {

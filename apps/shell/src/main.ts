@@ -59,6 +59,14 @@ async function main(): Promise<void> {
   );
   const displayPublisher = new DisplayFramePublisher(hub.kernel.bus, displayCapture);
 
+  const displaySources = await displayCapture.listSources();
+  const primaryDisplay = displaySources[0];
+  if (primaryDisplay) {
+    await displayPublisher.start(primaryDisplay.id, 250);
+  } else {
+    console.warn('No display capture source available; frame publishing is disabled.');
+  }
+
   const window = new BrowserWindow({
     width: 420,
     height: 640,
@@ -73,7 +81,6 @@ async function main(): Promise<void> {
   // TODO: load renderer (toggle UI / status / mode-switch UI) and bridge IPC to
   // hub.kernel (enable/disable) and hub.coordinator (switchTo).
   void window;
-  void displayPublisher;
 
   app.on('window-all-closed', () => {
     void displayPublisher.stop().finally(() => {
