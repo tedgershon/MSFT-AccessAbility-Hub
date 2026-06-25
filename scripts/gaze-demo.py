@@ -27,6 +27,7 @@ import cv2
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "adapters" / "camera"))
 sys.path.insert(0, str(ROOT / "services" / "eye-tracking"))
+sys.path.insert(0, str(ROOT / "core" / "contracts" / "python"))
 
 from camera_adapter import CameraAdapter  # noqa: E402  (path set above first)
 from eye_tracking.gaze import Calibrator, GazeEstimator, GazeReading  # noqa: E402
