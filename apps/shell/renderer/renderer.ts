@@ -98,6 +98,14 @@ function renderOverlayRow(view: OverlayLayerView): HTMLLIElement {
     preview.className = 'overlay-preview';
     if (descriptor.style?.filter) preview.style.filter = descriptor.style.filter;
     row.appendChild(preview);
+  } else if (view.kind === 'flash-guard') {
+    const preview = document.createElement('div');
+    preview.className = 'overlay-preview';
+    // The protective dim: a black swatch whose alpha tracks the flash intensity.
+    if (descriptor.style?.backgroundColor) {
+      preview.style.backgroundColor = descriptor.style.backgroundColor;
+    }
+    row.appendChild(preview);
   } else if (view.kind === 'caption') {
     const caption = document.createElement('div');
     caption.className = 'overlay-caption';

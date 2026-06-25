@@ -19,6 +19,8 @@
     "@aah/artinsight": "workspace:*",
     "@aah/display-capture": "workspace:*",
     "@aah/tts": "workspace:*",
+    "@aah/flash-filter": "workspace:*",
+    "@aah/creative-studio": "workspace:*",
     "@aah/ipc": "workspace:*"
   },
   "devDependencies": {

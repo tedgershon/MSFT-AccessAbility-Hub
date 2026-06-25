@@ -52,6 +52,12 @@ export interface EventMap {
   'overlay/update': OverlayLayer;
   /** Remove a layer from the overlay surface. */
   'overlay/detach': { id: string; ownerId: string };
+  /**
+   * A relative-luminance sample (0..1) measured from a captured display frame.
+   * Photosensitive guards consume this over the bus instead of being called
+   * directly, keeping the screen-capture seam on the event bus.
+   */
+  'display/luminance': { sourceId: string; luminance: number; atMs: number };
 }
 
 export type EventTopic = keyof EventMap;

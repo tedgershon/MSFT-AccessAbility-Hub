@@ -11,6 +11,8 @@
     { "path": "../../core/coordinator" },
     { "path": "../../services/colorblind-contrast" },
     { "path": "../../services/artinsight" },
+    { "path": "../../services/flash-filter" },
+    { "path": "../../services/creative-studio" },
     { "path": "../../adapters/display-capture" },
     { "path": "../../adapters/tts" },
     { "path": "../../adapters/ipc" }

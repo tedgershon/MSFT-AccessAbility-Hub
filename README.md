@@ -26,9 +26,11 @@ The top level mirrors the architecture diagram: each layer is a sibling folder.
   /browser-ops             TS + Playwright
   /clawpilot               MCP server + skills
   /colorblind-contrast     TS (runs in shell)
+  /flash-filter            TS (runs in shell)
   /eye-tracking            Python
   /voice-commands          Python
   /hand-signals            Python + FastAPI
+  /live-captions           Python (mic -> STT -> caption overlay)
 /adapters                  wrap OpenCV / ClawPilot / camera / audio / input
   /camera /audio /input-injection /clawpilotMCP
 /tests
