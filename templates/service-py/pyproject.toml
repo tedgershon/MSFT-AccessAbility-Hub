@@ -3,7 +3,7 @@ name = "__SERVICE_ID__"
 version = "0.1.0"
 description = "TODO: describe the __SERVICE_NAME__ service."
 requires-python = ">=3.11"
-dependencies = ["aah-contracts"]
+dependencies = ["aah-contracts", "aah-ipc"]
 
 [build-system]
 requires = ["hatchling"]
