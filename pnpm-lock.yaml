@@ -42,6 +42,19 @@ importers:
         specifier: workspace:*
         version: link:../../core/contracts
 
+  adapters/ipc:
+    dependencies:
+      '@aah/contracts':
+        specifier: workspace:*
+        version: link:../../core/contracts
+    devDependencies:
+      '@aah/kernel':
+        specifier: workspace:*
+        version: link:../../core/kernel
+      '@aah/test-fixtures':
+        specifier: workspace:*
+        version: link:../../tests/fixtures
+
   apps/shell:
     dependencies:
       '@aah/colorblind-contrast':

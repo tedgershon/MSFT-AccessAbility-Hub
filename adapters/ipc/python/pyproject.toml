@@ -1,0 +1,13 @@
+[project]
+name = "aah-ipc"
+version = "0.1.0"
+description = "Adapter (Python/child side): transport-agnostic IPC seam to the hub bus."
+requires-python = ">=3.11"
+dependencies = ["aah-contracts"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["aah_ipc"]

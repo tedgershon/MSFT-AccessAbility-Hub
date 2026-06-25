@@ -5,6 +5,7 @@ requires-python = ">=3.11"
 [manifest]
 members = [
     "aah-contracts",
+    "aah-ipc",
     "accessability-hub-python",
     "audio-adapter",
     "camera-adapter",
@@ -19,11 +20,23 @@ version = "0.1.0"
 source = { editable = "core/contracts/python" }
 
 [[package]]
+name = "aah-ipc"
+version = "0.1.0"
+source = { editable = "adapters/ipc/python" }
+dependencies = [
+    { name = "aah-contracts" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "aah-contracts", editable = "core/contracts/python" }]
+
+[[package]]
 name = "accessability-hub-python"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "aah-contracts" },
+    { name = "aah-ipc" },
     { name = "audio-adapter" },
 ]
 
@@ -36,6 +49,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aah-contracts", editable = "core/contracts/python" },
+    { name = "aah-ipc", editable = "adapters/ipc/python" },
     { name = "audio-adapter", editable = "adapters/audio" },
 ]
 

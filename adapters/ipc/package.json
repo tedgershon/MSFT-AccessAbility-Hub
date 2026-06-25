@@ -1,0 +1,27 @@
+{
+  "name": "@aah/ipc",
+  "version": "0.1.0",
+  "description": "Adapter: transport-agnostic TS<->Python IPC bridge. The seam where the bus is relayed across the process boundary as framed messages.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "lint": "echo \"(lint placeholder)\""
+  },
+  "dependencies": {
+    "@aah/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@aah/kernel": "workspace:*",
+    "@aah/test-fixtures": "workspace:*"
+  }
+}
