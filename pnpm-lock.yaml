@@ -67,6 +67,9 @@ importers:
 
   apps/shell:
     dependencies:
+      '@aah/adaptive-learning':
+        specifier: workspace:*
+        version: link:../../services/adaptive-learning
       '@aah/colorblind-contrast':
         specifier: workspace:*
         version: link:../../services/colorblind-contrast
@@ -104,6 +107,16 @@ importers:
       '@aah/contracts':
         specifier: workspace:*
         version: link:../contracts
+    devDependencies:
+      '@aah/test-fixtures':
+        specifier: workspace:*
+        version: link:../../tests/fixtures
+
+  services/adaptive-learning:
+    dependencies:
+      '@aah/contracts':
+        specifier: workspace:*
+        version: link:../../core/contracts
     devDependencies:
       '@aah/test-fixtures':
         specifier: workspace:*

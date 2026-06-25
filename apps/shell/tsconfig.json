@@ -10,6 +10,7 @@
     { "path": "../../core/kernel" },
     { "path": "../../core/coordinator" },
     { "path": "../../services/colorblind-contrast" },
+    { "path": "../../services/adaptive-learning" },
     { "path": "../../adapters/ipc" }
   ]
 }

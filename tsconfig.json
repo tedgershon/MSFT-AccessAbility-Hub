@@ -1,6 +1,7 @@
 {
   "files": [],
   "references": [
+    { "path": "./services/adaptive-learning" },
     { "path": "./core/contracts" },
     { "path": "./core/kernel" },
     { "path": "./core/coordinator" },
