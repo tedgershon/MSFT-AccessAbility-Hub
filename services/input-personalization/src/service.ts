@@ -4,9 +4,15 @@
  * Stores a per-user input-remapping profile (dwell click timing, click-and-hold
  * duration, key-repeat filtering) for motor/dexterity needs. Declares no
  * capabilities: it shapes settings rather than driving cursor/keyboard itself, so
- * it cannot conflict with anything in the Resource Arbiter. A future raw-input
- * capture adapter or the `input-injection` multiplexer would consult `profile()`
- * before shaping intents; wiring that consumer is out of scope here.
+ * it cannot conflict with anything in the Resource Arbiter.
+ *
+ * It makes the active profile usable two ways: it broadcasts `input/profile` on the
+ * bus whenever the profile is selected or changed (so an input-shaping consumer can
+ * react without depending on this service), and it hands out a ready-made
+ * {@link InputShaper} via {@link InputPersonalizationService.shaper} for an
+ * in-process consumer (e.g. a future raw-input capture adapter or the
+ * input-injection multiplexer). The dwell stage of that shaper is what turns a gaze
+ * `input/target-hint` stream from the eye-tracking service into a deliberate click.
  */
 
 import {
@@ -15,27 +21,57 @@ import {
   degraded,
   type HealthStatus,
   healthy,
+  type InputProfile as InputProfileShape,
   type ServiceContext,
   type ServiceMeta,
 } from '@aah/contracts';
+import { InputShaper, type InputShaperOptions } from './shaper.js';
 
 export type InputProfileId = 'default' | 'tremor' | 'switch-access';
 
-export interface InputProfile {
+/**
+ * The `input/profile` wire shape (the single source of truth in `@aah/contracts`)
+ * narrowed to the profile ids this service actually offers. The field set lives in
+ * contracts so it stays in lock-step with the bus payload; we only refine `id`.
+ */
+export interface InputProfile extends InputProfileShape {
   id: InputProfileId;
-  /** Time the pointer must hover a target before a dwell-click fires. */
-  dwellMs: number;
-  /** Time a press must be held before it counts as a deliberate click-and-hold. */
-  clickHoldMs: number;
-  /** Suppress repeated keydown events firing within this window (debounce). */
-  keyRepeatFilterMs: number;
 }
 
 const PROFILES: Record<InputProfileId, InputProfile> = {
-  default: { id: 'default', dwellMs: 0, clickHoldMs: 0, keyRepeatFilterMs: 0 },
-  tremor: { id: 'tremor', dwellMs: 400, clickHoldMs: 250, keyRepeatFilterMs: 120 },
-  'switch-access': { id: 'switch-access', dwellMs: 800, clickHoldMs: 500, keyRepeatFilterMs: 200 },
+  default: {
+    id: 'default',
+    dwellMs: 0,
+    clickHoldMs: 0,
+    keyRepeatFilterMs: 0,
+    angleGainFloor: 1,
+    clickSlipMaxPx: 0,
+    areaCursorRadiusPx: 0,
+  },
+  tremor: {
+    id: 'tremor',
+    dwellMs: 400,
+    clickHoldMs: 250,
+    keyRepeatFilterMs: 120,
+    angleGainFloor: 0.4,
+    clickSlipMaxPx: 12,
+    areaCursorRadiusPx: 18,
+  },
+  'switch-access': {
+    id: 'switch-access',
+    dwellMs: 800,
+    clickHoldMs: 500,
+    keyRepeatFilterMs: 200,
+    angleGainFloor: 0.3,
+    clickSlipMaxPx: 20,
+    areaCursorRadiusPx: 28,
+  },
 };
+
+/** Profile ids selectable at runtime / via config, in control-panel order. */
+export const INPUT_PROFILE_IDS: readonly InputProfileId[] = Object.keys(
+  PROFILES,
+) as InputProfileId[];
 
 export class InputPersonalizationService implements AccessibilityService {
   readonly meta: ServiceMeta = {
@@ -58,6 +94,8 @@ export class InputPersonalizationService implements AccessibilityService {
 
   async onEnable(): Promise<void> {
     this.#active = true;
+    // Announce the active profile so input-shaping consumers can pick it up.
+    this.#broadcastProfile();
   }
 
   async onDisable(): Promise<void> {
@@ -76,5 +114,28 @@ export class InputPersonalizationService implements AccessibilityService {
   /** The currently selected remapping profile. */
   profile(): InputProfile {
     return this.#profile;
+  }
+
+  /**
+   * Switch the active profile at runtime (e.g. from the control-panel UI). Unknown
+   * ids and no-op switches are ignored. When the service is enabled the change is
+   * re-broadcast so consumers re-shape input immediately.
+   */
+  setProfile(id: InputProfileId): void {
+    const next = PROFILES[id];
+    if (!next || next.id === this.#profile.id) return;
+    this.#profile = next;
+    if (this.#active) this.#broadcastProfile();
+  }
+
+  /** Build an {@link InputShaper} that applies the currently selected profile. */
+  shaper(options?: InputShaperOptions): InputShaper {
+    return new InputShaper(this.#profile, options);
+  }
+
+  #broadcastProfile(): void {
+    const ctx = this.#ctx;
+    if (!ctx) return;
+    ctx.bus.emit('input/profile', { source: ctx.selfId, profile: this.#profile });
   }
 }

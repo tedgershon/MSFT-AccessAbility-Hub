@@ -58,6 +58,22 @@ function detachEvents(bus: CapturingBus): Array<EventPayload<'overlay/detach'>> 
     .map((e) => e.payload as EventPayload<'overlay/detach'>);
 }
 
+/** A full input/profile payload with the given area-cursor radius. */
+function profilePayload(areaCursorRadiusPx: number): EventPayload<'input/profile'> {
+  return {
+    source: 'input-personalization',
+    profile: {
+      id: 'tremor',
+      dwellMs: 400,
+      clickHoldMs: 250,
+      keyRepeatFilterMs: 120,
+      angleGainFloor: 0.4,
+      clickSlipMaxPx: 12,
+      areaCursorRadiusPx,
+    },
+  };
+}
+
 describe('PointingMagnifierService', () => {
   it('declares only a shared displayOverlay capability', () => {
     const svc = new PointingMagnifierService();
@@ -76,7 +92,7 @@ describe('PointingMagnifierService', () => {
       id: LAYER_ID,
       ownerId: 'pointing-magnifier',
       kind: 'pointer-magnifier',
-      params: { scale: 2, targetHint: null },
+      params: { scale: 2, targetHint: null, areaCursorRadiusPx: 0 },
     });
   });
 
@@ -98,7 +114,7 @@ describe('PointingMagnifierService', () => {
     await svc.onLoad(ctx);
     await svc.onEnable();
 
-    expect(attachEvents(bus)[0].params).toEqual({ scale: 4, targetHint: null });
+    expect(attachEvents(bus)[0].params).toEqual({ scale: 4, targetHint: null, areaCursorRadiusPx: 0 });
   });
 
   it('re-emits overlay/update with the latest gaze target hint', async () => {
@@ -121,7 +137,7 @@ describe('PointingMagnifierService', () => {
       id: LAYER_ID,
       ownerId: 'pointing-magnifier',
       kind: 'pointer-magnifier',
-      params: { scale: 2, targetHint: hint },
+      params: { scale: 2, targetHint: hint, areaCursorRadiusPx: 0 },
     });
     expect(svc.healthCheck().detail).toBe('overlay active (scale=2, hinted)');
   });
@@ -168,5 +184,75 @@ describe('PointingMagnifierService', () => {
     await expect(svc.onEnable()).resolves.toBeUndefined();
     await expect(svc.onDisable()).resolves.toBeUndefined();
     expect(svc.healthCheck().state).toBe('degraded');
+  });
+
+  it('sizes the area cursor from the active input profile (Enhanced Area Cursors)', async () => {
+    const { ctx, bus } = makeCtx();
+    const svc = new PointingMagnifierService();
+    await svc.onLoad(ctx);
+    await svc.onEnable();
+
+    ctx.bus.emit('input/profile', profilePayload(18));
+
+    const updates = updateEvents(bus);
+    expect(updates).toHaveLength(1);
+    expect(updates[0].params).toEqual({ scale: 2, targetHint: null, areaCursorRadiusPx: 18 });
+  });
+
+  it('keeps the latest area radius when a later gaze hint updates the overlay', async () => {
+    const { ctx, bus } = makeCtx();
+    const svc = new PointingMagnifierService();
+    await svc.onLoad(ctx);
+    await svc.onEnable();
+
+    ctx.bus.emit('input/profile', profilePayload(28));
+    ctx.bus.emit('input/target-hint', { source: 'eye-tracking', x: 10, y: 20, confidence: 0.7 });
+
+    const last = updateEvents(bus).at(-1);
+    expect(last?.params).toEqual({
+      scale: 2,
+      targetHint: { source: 'eye-tracking', x: 10, y: 20, confidence: 0.7 },
+      areaCursorRadiusPx: 28,
+    });
+  });
+
+  it('ignores a no-op area radius (no redundant overlay/update)', async () => {
+    const { ctx, bus } = makeCtx();
+    const svc = new PointingMagnifierService();
+    await svc.onLoad(ctx);
+    await svc.onEnable();
+
+    ctx.bus.emit('input/profile', profilePayload(0)); // same as default → no update
+
+    expect(updateEvents(bus)).toHaveLength(0);
+  });
+
+  it('a config area radius pins the cursor and ignores profile sizing', async () => {
+    const { ctx, bus } = makeCtx(fakeConfig({ 'pointing-magnifier.areaRadius': 40 }));
+    const svc = new PointingMagnifierService();
+    await svc.onLoad(ctx);
+    await svc.onEnable();
+
+    expect(attachEvents(bus)[0].params).toEqual({
+      scale: 2,
+      targetHint: null,
+      areaCursorRadiusPx: 40,
+    });
+
+    ctx.bus.emit('input/profile', profilePayload(18)); // pinned → ignored
+    expect(updateEvents(bus)).toHaveLength(0);
+  });
+
+  it('stops resizing the area cursor after onDisable', async () => {
+    const { ctx, bus } = makeCtx();
+    const svc = new PointingMagnifierService();
+    await svc.onLoad(ctx);
+    await svc.onEnable();
+    await svc.onDisable();
+
+    ctx.bus.emit('input/profile', profilePayload(18));
+
+    expect(updateEvents(bus)).toHaveLength(0);
+    expect(detachEvents(bus)).toHaveLength(1);
   });
 });

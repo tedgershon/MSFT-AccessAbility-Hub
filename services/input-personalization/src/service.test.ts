@@ -7,9 +7,9 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { type ConfigStore, type ServiceContext } from '@aah/contracts';
+import { type ConfigStore, type EventPayload, type ServiceContext } from '@aah/contracts';
 import { CapturingBus } from '@aah/test-fixtures';
-import { InputPersonalizationService } from './service.js';
+import { InputPersonalizationService, INPUT_PROFILE_IDS } from './service.js';
 
 /** Minimal in-memory config view for tests. */
 function fakeConfig(initial: Record<string, unknown> = {}): ConfigStore {
@@ -28,6 +28,19 @@ function makeCtx(config: ConfigStore = fakeConfig()): ServiceContext {
   return { bus: new CapturingBus(), config, selfId: 'input-personalization' };
 }
 
+function makeCtxWithBus(
+  config: ConfigStore = fakeConfig(),
+): { ctx: ServiceContext; bus: CapturingBus } {
+  const bus = new CapturingBus();
+  return { ctx: { bus, config, selfId: 'input-personalization' }, bus };
+}
+
+function profileEvents(bus: CapturingBus): Array<EventPayload<'input/profile'>> {
+  return bus.emitted
+    .filter((e) => e.topic === 'input/profile')
+    .map((e) => e.payload as EventPayload<'input/profile'>);
+}
+
 describe('InputPersonalizationService', () => {
   it('declares no capabilities — it shapes settings, not input itself', () => {
     const svc = new InputPersonalizationService();
@@ -43,6 +56,9 @@ describe('InputPersonalizationService', () => {
       dwellMs: 0,
       clickHoldMs: 0,
       keyRepeatFilterMs: 0,
+      angleGainFloor: 1,
+      clickSlipMaxPx: 0,
+      areaCursorRadiusPx: 0,
     });
   });
 
@@ -55,6 +71,9 @@ describe('InputPersonalizationService', () => {
       dwellMs: 400,
       clickHoldMs: 250,
       keyRepeatFilterMs: 120,
+      angleGainFloor: 0.4,
+      clickSlipMaxPx: 12,
+      areaCursorRadiusPx: 18,
     });
   });
 
@@ -82,5 +101,79 @@ describe('InputPersonalizationService', () => {
 
     await svc.onUnload();
     expect(svc.healthCheck().state).toBe('degraded');
+  });
+
+  it('broadcasts the active profile on enable', async () => {
+    const { ctx, bus } = makeCtxWithBus(fakeConfig({ 'input-personalization.profile': 'tremor' }));
+    const svc = new InputPersonalizationService();
+    await svc.onLoad(ctx);
+    await svc.onEnable();
+
+    const events = profileEvents(bus);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toEqual({
+      source: 'input-personalization',
+      profile: {
+        id: 'tremor',
+        dwellMs: 400,
+        clickHoldMs: 250,
+        keyRepeatFilterMs: 120,
+        angleGainFloor: 0.4,
+        clickSlipMaxPx: 12,
+        areaCursorRadiusPx: 18,
+      },
+    });
+  });
+
+  it('re-broadcasts when the profile is switched at runtime while enabled', async () => {
+    const { ctx, bus } = makeCtxWithBus();
+    const svc = new InputPersonalizationService();
+    await svc.onLoad(ctx);
+    await svc.onEnable(); // broadcasts default
+
+    svc.setProfile('switch-access');
+
+    const events = profileEvents(bus);
+    expect(events).toHaveLength(2);
+    expect(events[1].profile.id).toBe('switch-access');
+    expect(svc.profile().id).toBe('switch-access');
+  });
+
+  it('ignores unknown and no-op profile switches', async () => {
+    const { ctx, bus } = makeCtxWithBus();
+    const svc = new InputPersonalizationService();
+    await svc.onLoad(ctx);
+    await svc.onEnable(); // broadcasts default (1)
+
+    svc.setProfile('default'); // no-op, same profile
+    svc.setProfile('nope' as never); // unknown id
+
+    expect(profileEvents(bus)).toHaveLength(1);
+  });
+
+  it('does not broadcast a runtime switch while disabled', async () => {
+    const { ctx, bus } = makeCtxWithBus();
+    const svc = new InputPersonalizationService();
+    await svc.onLoad(ctx); // not enabled
+
+    svc.setProfile('tremor');
+
+    expect(profileEvents(bus)).toHaveLength(0);
+    expect(svc.profile().id).toBe('tremor'); // selection still applied
+  });
+
+  it('hands out a shaper bound to the active profile', async () => {
+    const svc = new InputPersonalizationService();
+    await svc.onLoad(makeCtx(fakeConfig({ 'input-personalization.profile': 'tremor' })));
+
+    const shaper = svc.shaper();
+    expect(shaper.profile.id).toBe('tremor');
+    // The tremor profile debounces key repeats, proving the shaper got its timings.
+    expect(shaper.filterKeydown('a', 0)).toBe(true);
+    expect(shaper.filterKeydown('a', 50)).toBe(false);
+  });
+
+  it('exposes the selectable profile ids', () => {
+    expect(INPUT_PROFILE_IDS).toEqual(['default', 'tremor', 'switch-access']);
   });
 });
