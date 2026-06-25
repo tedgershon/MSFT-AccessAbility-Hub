@@ -69,6 +69,9 @@ importers:
       '@aah/coordinator':
         specifier: workspace:*
         version: link:../../core/coordinator
+      '@aah/ipc':
+        specifier: workspace:*
+        version: link:../../adapters/ipc
       '@aah/kernel':
         specifier: workspace:*
         version: link:../../core/kernel
