@@ -7,15 +7,20 @@ the camera/mic behind a small :class:`PerceptionSource` protocol so the service 
   **released in ``on_disable``** (contract rule 5), and
 * run entirely hardware-free in tests via :class:`ScriptedPerception`.
 
-A real implementation would wrap the camera + audio adapters in this service's own
-process and emit fused :class:`ConversationSignal` windows; that lives behind the
-same protocol so the service body never changes.
+:class:`AdapterPerception` is the production source: it wraps the shared
+``camera-adapter`` and ``audio-adapter`` (capture stays in the adapters, reusable and
+tile-agnostic) and fuses each frame + audio chunk into a :class:`ConversationSignal`
+via an injectable :class:`SignalExtractor`. The service body never changes regardless
+of which source is wired.
 """
 
 from __future__ import annotations
 
 from collections import deque
-from typing import Protocol
+from typing import Any, Protocol
+
+from audio_adapter import AudioAdapter
+from camera_adapter import CameraAdapter
 
 from .coaching import ConversationSignal
 
@@ -35,6 +40,84 @@ class PerceptionSource(Protocol):
     def close(self) -> None: ...
 
     def poll(self) -> ConversationSignal | None: ...
+
+
+class SignalExtractor(Protocol):
+    """Fuses a raw camera frame + audio chunk into a :class:`ConversationSignal`.
+
+    This is the single seam where conversational-feature inference (gaze / turn-taking
+    estimation from frames, voice-activity ratios from audio, ...) plugs in. It is
+    deliberately injectable so the heavy model work lives behind this protocol and the
+    service never changes. Return ``None`` when not enough has accumulated to emit a
+    window yet.
+    """
+
+    def extract(self, frame: Any, chunk: bytes | None) -> ConversationSignal | None: ...
+
+
+class NullSignalExtractor:
+    """Placeholder extractor that infers nothing (always returns ``None``).
+
+    Keeps the real device path wired and testable while the perception model is built
+    separately; drop in a real :class:`SignalExtractor` (no service changes) to make
+    the coach start surfacing prompts from live camera + mic.
+    """
+
+    def extract(self, frame: Any, chunk: bytes | None) -> ConversationSignal | None:
+        _ = (frame, chunk)
+        return None
+
+
+class AdapterPerception:
+    """Real camera + microphone perception backed by the hub adapters.
+
+    Holds the camera and mic as one logical lease: :meth:`open` acquires both and
+    :meth:`close` releases both (idempotent — contract rule 5). :meth:`poll` reads the
+    latest frame + audio chunk and hands them to the injected :class:`SignalExtractor`.
+    The adapters own the hardware (and stay reusable by any tile); only the fusion
+    lives here.
+    """
+
+    def __init__(
+        self,
+        camera: CameraAdapter | None = None,
+        audio: AudioAdapter | None = None,
+        extractor: SignalExtractor | None = None,
+    ) -> None:
+        self._camera = camera or CameraAdapter()
+        self._audio = audio or AudioAdapter()
+        self._extractor = extractor or NullSignalExtractor()
+        self._open = False
+
+    @property
+    def is_open(self) -> bool:
+        # Reflect real device state so a lease dropped underneath us is observable.
+        return self._open and self._camera.is_open and self._audio.is_open
+
+    def open(self) -> None:
+        if self._open:
+            return
+        self._camera.open()
+        try:
+            self._audio.open_input()
+        except Exception:
+            # Never leak the camera if the mic fails to come up.
+            self._camera.close()
+            raise
+        self._open = True
+
+    def close(self) -> None:
+        # Release both devices; safe to call repeatedly, even after a half-open.
+        self._audio.close()
+        self._camera.close()
+        self._open = False
+
+    def poll(self) -> ConversationSignal | None:
+        if not self._open:
+            raise RuntimeError("poll() before open()")
+        frame = self._camera.read()
+        chunk = self._audio.read()
+        return self._extractor.extract(frame, chunk)
 
 
 class ScriptedPerception:
