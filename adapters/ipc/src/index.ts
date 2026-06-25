@@ -12,3 +12,9 @@ export type { Channel } from './channel.js';
 export { createChannelPair } from './in-memory-channel.js';
 export { BusBridge, type BusBridgeOptions } from './bus-bridge.js';
 export { ProcessServiceProxy } from './process-service-proxy.js';
+export { StdioChannel, type StdioChannelOptions } from './stdio-channel.js';
+export {
+  spawnServiceChannel,
+  type SpawnServiceOptions,
+  type SpawnedServiceChannel,
+} from './spawn.js';

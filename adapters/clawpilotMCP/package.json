@@ -12,6 +12,10 @@
     "lint": "echo \"(lint placeholder)\""
   },
   "dependencies": {
-    "@aah/contracts": "workspace:*"
+    "@aah/contracts": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0"
   }
 }

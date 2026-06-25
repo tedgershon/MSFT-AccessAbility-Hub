@@ -3,7 +3,9 @@ name = "camera-adapter"
 version = "0.1.0"
 description = "Adapter: wraps camera capture (OpenCV) behind the hub contract."
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+  "opencv-python>=4.10.0",
+]
 
 [build-system]
 requires = ["hatchling"]

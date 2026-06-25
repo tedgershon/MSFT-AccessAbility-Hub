@@ -3,7 +3,7 @@ name = "conversation-coach"
 version = "0.1.0"
 description = "Conversation Coach: private real-time conversational repair prompts (autism support) from camera + mic."
 requires-python = ">=3.11"
-dependencies = ["aah-contracts"]
+dependencies = ["aah-contracts", "aah-ipc", "camera-adapter", "audio-adapter"]
 
 [build-system]
 requires = ["hatchling"]

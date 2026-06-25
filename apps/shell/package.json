@@ -5,9 +5,9 @@
   "type": "module",
   "main": "./dist/main.js",
   "scripts": {
-    "build": "tsc -b",
-    "dev": "echo \"(dev placeholder) electron .\"",
-    "typecheck": "tsc -b",
+    "build": "tsc -b && tsc -p tsconfig.renderer.json",
+    "dev": "electron .",
+    "typecheck": "tsc -b && tsc -p tsconfig.renderer.json",
     "test": "vitest run",
     "lint": "echo \"(lint placeholder)\""
   },
@@ -15,7 +15,8 @@
     "@aah/contracts": "workspace:*",
     "@aah/coordinator": "workspace:*",
     "@aah/kernel": "workspace:*",
-    "@aah/colorblind-contrast": "workspace:*"
+    "@aah/colorblind-contrast": "workspace:*",
+    "@aah/ipc": "workspace:*"
   },
   "devDependencies": {
     "electron": "^30.0.0"
