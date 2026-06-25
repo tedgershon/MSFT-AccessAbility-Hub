@@ -30,6 +30,10 @@ importers:
         specifier: ^1.6.0
         version: 1.6.1(@types/node@20.19.43)
 
+  adapters/app-introspection: {}
+
+  adapters/audio-out: {}
+
   adapters/clawpilotMCP:
     dependencies:
       '@aah/contracts':
@@ -76,6 +80,9 @@ importers:
       '@aah/coordinator':
         specifier: workspace:*
         version: link:../../core/coordinator
+      '@aah/creative-studio':
+        specifier: workspace:*
+        version: link:../../services/creative-studio
       '@aah/ipc':
         specifier: workspace:*
         version: link:../../adapters/ipc
@@ -133,6 +140,22 @@ importers:
 
   services/colorblind-contrast:
     dependencies:
+      '@aah/contracts':
+        specifier: workspace:*
+        version: link:../../core/contracts
+    devDependencies:
+      '@aah/test-fixtures':
+        specifier: workspace:*
+        version: link:../../tests/fixtures
+
+  services/creative-studio:
+    dependencies:
+      '@aah/app-introspection':
+        specifier: workspace:*
+        version: link:../../adapters/app-introspection
+      '@aah/audio-out':
+        specifier: workspace:*
+        version: link:../../adapters/audio-out
       '@aah/contracts':
         specifier: workspace:*
         version: link:../../core/contracts

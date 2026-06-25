@@ -1,0 +1,20 @@
+{
+  "name": "@aah/app-introspection",
+  "version": "0.1.0",
+  "description": "Adapter: reads a creative app's salient state (accessibility tree / app introspection) behind a narrow, leasable channel. Backs the `commandChannel` seam.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "lint": "echo \"(lint runs from the repo root: pnpm lint)\""
+  }
+}
