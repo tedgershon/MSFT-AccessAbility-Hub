@@ -56,6 +56,24 @@ const COLOR_CORRECTION_FILTERS: Record<string, string> = {
 /** Fallback filter when the strategy is missing or unrecognised. */
 const DEFAULT_COLOR_CORRECTION_FILTER = 'contrast(1.05)';
 
+/**
+ * Per-cognitive-style typography presets for the adaptive-text overlay.
+ *
+ * Like {@link COLOR_CORRECTION_FILTERS} these are DOCUMENTED PLACEHOLDERS — coarse
+ * spacing/weight nudges so the restructured text reads differently per style, not a
+ * tuned reading-science profile. The `adaptive-learning` service restructures the
+ * text itself (chunked bullets / spaced lines / numbered steps); these hints just
+ * tell the renderer how to *present* that re-injected text.
+ */
+const ADAPTIVE_TEXT_STYLES: Record<string, Record<string, string>> = {
+  adhd: { lineHeight: '1.6', letterSpacing: '0.02em', fontWeight: '600' },
+  dyslexia: { lineHeight: '2', letterSpacing: '0.08em', wordSpacing: '0.16em' },
+  autism: { lineHeight: '1.8', letterSpacing: '0.03em' },
+};
+
+/** Fallback typography when the cognitive style is missing or unrecognised. */
+const DEFAULT_ADAPTIVE_TEXT_STYLE: Record<string, string> = { lineHeight: '1.6' };
+
 /** A presentation hint the renderer uses to paint a layer. */
 export interface OverlayDescriptor {
   kind: string;
@@ -71,6 +89,7 @@ export interface OverlayDescriptor {
  *
  * Known kinds:
  * - `color-correction` -> full-window CSS `filter` derived from `params.strategy`.
+ * - `adaptive-text` -> typography preset derived from `params.style` (cognitive style).
  * - `caption` -> label taken from `params.text`.
  */
 export function describeOverlayLayer(view: OverlayLayerView): OverlayDescriptor {
@@ -84,6 +103,17 @@ export function describeOverlayLayer(view: OverlayLayerView): OverlayDescriptor 
         kind: view.kind,
         label: `Colour correction${strategy ? ` (${strategy})` : ''}`,
         style: { filter },
+      };
+    }
+    case 'adaptive-text': {
+      const style =
+        typeof view.params?.style === 'string' ? view.params.style : undefined;
+      const typography =
+        (style && ADAPTIVE_TEXT_STYLES[style]) ?? DEFAULT_ADAPTIVE_TEXT_STYLE;
+      return {
+        kind: view.kind,
+        label: `Adaptive text${style ? ` (${style})` : ''}`,
+        style: { ...typography },
       };
     }
     case 'caption': {
