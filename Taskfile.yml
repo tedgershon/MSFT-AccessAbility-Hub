@@ -46,3 +46,8 @@ tasks:
     desc: Launch the hub shell in dev mode
     cmds:
       - pnpm --filter @aah/shell dev
+
+  camera:test:
+    desc: Run persistent camera test (preview mode by default)
+    cmds:
+      - uv run python scripts/camera-test.py {{.CLI_ARGS}}
