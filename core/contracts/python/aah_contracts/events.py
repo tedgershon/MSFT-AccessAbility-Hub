@@ -32,3 +32,10 @@ class OverlayLayer:
 OVERLAY_ATTACH = "overlay/attach"
 OVERLAY_UPDATE = "overlay/update"
 OVERLAY_DETACH = "overlay/detach"
+
+# Multimodal context topics mirrored from the TS ``EventMap``.
+CAMERA_FRAME_REF = "camera/frame-ref"
+DISPLAY_FRAME_REF = "display/frame-ref"
+GAZE_POINT = "gaze/point"
+CALIBRATION_STATE = "calibration/state"
+INPUT_CONTEXT = "input/context"

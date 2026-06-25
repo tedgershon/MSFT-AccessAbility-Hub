@@ -11,6 +11,7 @@
       "type": "string",
       "enum": [
         "camera",
+        "displayCapture",
         "audioIn",
         "audioOut",
         "cursor",

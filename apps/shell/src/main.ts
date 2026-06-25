@@ -5,12 +5,59 @@
  * Scaffold: creates the hub and a window. Renderer/IPC wiring is left as TODO.
  */
 
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, desktopCapturer } from 'electron';
+import { DisplayCaptureAdapter, ElectronDisplayCaptureBackend } from '@aah/display-capture';
 import { createHub } from './bootstrap.js';
+import { DisplayFramePublisher } from './display-frame-publisher.js';
+
+function createDesktopCaptureBindings(): {
+  listSources(): Promise<Array<{ id: string; name: string; displayId?: string; thumbnailDataUrl?: string }>>;
+  captureFrame(
+    sourceId: string,
+  ): Promise<{ capturedAtMs: number; width: number; height: number; data: Uint8Array } | null>;
+} {
+  return {
+    async listSources() {
+      const sources = await desktopCapturer.getSources({
+        types: ['screen'],
+        thumbnailSize: { width: 640, height: 360 },
+      });
+      return sources.map((source) => ({
+        id: source.id,
+        name: source.name,
+        displayId: source.display_id || undefined,
+        thumbnailDataUrl: source.thumbnail.toDataURL(),
+      }));
+    },
+    async captureFrame(sourceId: string) {
+      const sources = await desktopCapturer.getSources({
+        types: ['screen'],
+        thumbnailSize: { width: 1280, height: 720 },
+      });
+      const source = sources.find((candidate) => candidate.id === sourceId);
+      if (!source) {
+        return null;
+      }
+      const image = source.thumbnail;
+      const png = image.toPNG();
+      const size = image.getSize();
+      return {
+        capturedAtMs: Date.now(),
+        width: size.width,
+        height: size.height,
+        data: new Uint8Array(png),
+      };
+    },
+  };
+}
 
 async function main(): Promise<void> {
   await app.whenReady();
   const hub = await createHub();
+  const displayCapture = new DisplayCaptureAdapter(
+    new ElectronDisplayCaptureBackend(createDesktopCaptureBindings()),
+  );
+  const displayPublisher = new DisplayFramePublisher(hub.kernel.bus, displayCapture);
 
   const window = new BrowserWindow({
     width: 420,
@@ -26,10 +73,12 @@ async function main(): Promise<void> {
   // TODO: load renderer (toggle UI / status / mode-switch UI) and bridge IPC to
   // hub.kernel (enable/disable) and hub.coordinator (switchTo).
   void window;
-  void hub;
+  void displayPublisher;
 
   app.on('window-all-closed', () => {
-    void hub.kernel.shutdown().finally(() => app.quit());
+    void displayPublisher.stop().finally(() => {
+      void hub.kernel.shutdown().finally(() => app.quit());
+    });
   });
 }
 

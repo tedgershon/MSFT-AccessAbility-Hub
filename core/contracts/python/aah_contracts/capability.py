@@ -7,6 +7,7 @@ from typing import Literal
 
 Resource = Literal[
     "camera",
+    "displayCapture",
     "audioIn",
     "audioOut",
     "cursor",

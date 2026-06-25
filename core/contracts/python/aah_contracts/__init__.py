@@ -7,6 +7,11 @@ to the kernel exclusively across the event-bus / IPC seam — never via direct c
 
 from .capability import AccessMode, Capability, Resource
 from .events import (
+    CALIBRATION_STATE,
+    CAMERA_FRAME_REF,
+    DISPLAY_FRAME_REF,
+    GAZE_POINT,
+    INPUT_CONTEXT,
     OVERLAY_ATTACH,
     OVERLAY_DETACH,
     OVERLAY_UPDATE,
@@ -20,6 +25,11 @@ __all__ = [
     "Capability",
     "Resource",
     "OverlayLayer",
+    "CAMERA_FRAME_REF",
+    "DISPLAY_FRAME_REF",
+    "GAZE_POINT",
+    "CALIBRATION_STATE",
+    "INPUT_CONTEXT",
     "OVERLAY_ATTACH",
     "OVERLAY_UPDATE",
     "OVERLAY_DETACH",

@@ -36,6 +36,12 @@ importers:
         specifier: workspace:*
         version: link:../../core/contracts
 
+  adapters/display-capture:
+    dependencies:
+      '@aah/contracts':
+        specifier: workspace:*
+        version: link:../../core/contracts
+
   adapters/input-injection:
     dependencies:
       '@aah/contracts':
@@ -53,6 +59,9 @@ importers:
       '@aah/coordinator':
         specifier: workspace:*
         version: link:../../core/coordinator
+      '@aah/display-capture':
+        specifier: workspace:*
+        version: link:../../adapters/display-capture
       '@aah/kernel':
         specifier: workspace:*
         version: link:../../core/kernel

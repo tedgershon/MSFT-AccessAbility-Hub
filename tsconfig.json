@@ -10,6 +10,7 @@
     { "path": "./services/clawpilot" },
     { "path": "./services/colorblind-contrast" },
     { "path": "./adapters/input-injection" },
+    { "path": "./adapters/display-capture" },
     { "path": "./adapters/clawpilotMCP" }
   ]
 }

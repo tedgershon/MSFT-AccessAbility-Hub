@@ -12,6 +12,7 @@
  */
 export type Resource =
   | 'camera'
+  | 'displayCapture'
   | 'audioIn'
   | 'audioOut'
   | 'cursor'
