@@ -1,0 +1,20 @@
+{
+  "name": "@aah/audio-out",
+  "version": "0.1.0",
+  "description": "Adapter: speaks short utterances to the user (text-to-speech) behind a narrow, leasable sink. Backs the `audioOut` seam.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "lint": "echo \"(lint runs from the repo root: pnpm lint)\""
+  }
+}

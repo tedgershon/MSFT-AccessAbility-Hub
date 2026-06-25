@@ -1,6 +1,7 @@
 {
   "files": [],
   "references": [
+    { "path": "./services/creative-studio" },
     { "path": "./core/contracts" },
     { "path": "./core/kernel" },
     { "path": "./core/coordinator" },
@@ -12,6 +13,8 @@
     { "path": "./services/flash-filter" },
     { "path": "./adapters/display-capture" },
     { "path": "./adapters/input-injection" },
-    { "path": "./adapters/clawpilotMCP" }
+    { "path": "./adapters/clawpilotMCP" },
+    { "path": "./adapters/audio-out" },
+    { "path": "./adapters/app-introspection" }
   ]
 }

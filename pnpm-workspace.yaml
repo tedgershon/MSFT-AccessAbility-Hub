@@ -4,4 +4,5 @@ packages:
   - "services/*"
   - "adapters/*"
   - "tests/fixtures"
+  - "tests/integration"
 # Dirs without a package.json (Python-only services/adapters) are skipped by pnpm.

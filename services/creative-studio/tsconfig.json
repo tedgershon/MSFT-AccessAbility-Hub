@@ -7,6 +7,7 @@
   "include": ["src/**/*.ts"],
   "references": [
     { "path": "../../core/contracts" },
-    { "path": "../../adapters/clawpilotMCP" }
+    { "path": "../../adapters/audio-out" },
+    { "path": "../../adapters/app-introspection" }
   ]
 }

@@ -18,6 +18,7 @@
     "@aah/colorblind-contrast": "workspace:*",
     "@aah/display-capture": "workspace:*",
     "@aah/flash-filter": "workspace:*",
+    "@aah/creative-studio": "workspace:*",
     "@aah/ipc": "workspace:*"
   },
   "devDependencies": {
