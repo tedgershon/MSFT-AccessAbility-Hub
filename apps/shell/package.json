@@ -16,8 +16,10 @@
     "@aah/coordinator": "workspace:*",
     "@aah/kernel": "workspace:*",
     "@aah/colorblind-contrast": "workspace:*",
+    "@aah/artinsight": "workspace:*",
     "@aah/adaptive-learning": "workspace:*",
     "@aah/display-capture": "workspace:*",
+    "@aah/tts": "workspace:*",
     "@aah/flash-filter": "workspace:*",
     "@aah/creative-studio": "workspace:*",
     "@aah/ipc": "workspace:*"

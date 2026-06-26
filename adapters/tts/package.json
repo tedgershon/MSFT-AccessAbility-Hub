@@ -1,0 +1,20 @@
+{
+  "name": "@aah/tts",
+  "version": "0.1.0",
+  "description": "Adapter: wraps a text-to-speech engine (Web Speech in the shell) behind the hub contract.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "lint": "echo \"(lint placeholder)\""
+  }
+}

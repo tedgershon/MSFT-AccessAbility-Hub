@@ -17,9 +17,15 @@
  */
 
 import { fileURLToPath } from 'node:url';
-import { app, BrowserWindow, ipcMain, desktopCapturer } from 'electron';
+import { app, BrowserWindow, desktopCapturer, ipcMain, screen } from 'electron';
 import type { EventTopic } from '@aah/contracts';
-import { DisplayCaptureAdapter, ElectronDisplayCaptureBackend } from '@aah/display-capture';
+import {
+  DisplayCaptureAdapter,
+  ElectronDisplayCaptureBackend,
+  type DesktopCaptureBindings,
+} from '@aah/display-capture';
+import { TtsAdapter, WebSpeechTtsBackend, type WebSpeechBindings } from '@aah/tts';
+import { ArtInSightService, OpenAIVisionDescriber, type SceneDescriber } from '@aah/artinsight';
 import { createHub, type Hub } from './bootstrap.js';
 import { DisplayLuminancePublisher } from './display-luminance-publisher.js';
 import { IPC } from './ui/ipc-contract.js';
@@ -101,6 +107,74 @@ function wireActions(): void {
   ipcMain.handle(IPC.disable, async (_event, id: string) => {
     await hub?.kernel.disable(id);
     if (win) pushServices(win);
+  });
+  ipcMain.handle(IPC.describe, async (_event, sourceId?: string) => {
+    hub?.kernel.bus.emit('artinsight/describe-requested', { sourceId });
+  });
+}
+
+/**
+ * Build the ArtInSight tile with Electron-backed adapters the headless bootstrap
+ * can't construct: screen capture via `desktopCapturer`, and speech routed to the
+ * renderer's Web Speech API. The vision describer is config-driven and falls back to
+ * a canned describer when no API key is set, so the hub still boots offline.
+ */
+function buildArtInSightService(): ArtInSightService {
+  const captureBindings: DesktopCaptureBindings = {
+    async listSources() {
+      const sources = await desktopCapturer.getSources({
+        types: ['screen'],
+        thumbnailSize: { width: 0, height: 0 },
+      });
+      return sources.map((s) => ({ id: s.id, name: s.name, displayId: s.display_id }));
+    },
+    async captureFrame(sourceId) {
+      const display = screen.getPrimaryDisplay();
+      const thumbnailSize = {
+        width: Math.round(display.size.width * display.scaleFactor),
+        height: Math.round(display.size.height * display.scaleFactor),
+      };
+      const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize });
+      const match = sources.find((s) => s.id === sourceId) ?? sources[0];
+      if (!match) return null;
+      const image = match.thumbnail;
+      const { width, height } = image.getSize();
+      return { capturedAtMs: Date.now(), width, height, data: new Uint8Array(image.toPNG()) };
+    },
+  };
+  const capture = new DisplayCaptureAdapter(new ElectronDisplayCaptureBackend(captureBindings));
+
+  const speechBindings: WebSpeechBindings = {
+    speak(text, opts) {
+      win?.webContents.send(IPC.speak, {
+        text,
+        rate: opts?.rate,
+        pitch: opts?.pitch,
+        voice: opts?.voice,
+      });
+    },
+    cancel() {
+      win?.webContents.send(IPC.speakCancel);
+    },
+  };
+  const tts = new TtsAdapter(new WebSpeechTtsBackend(speechBindings));
+
+  return new ArtInSightService({ capture, tts, describer: buildScreenDescriber() });
+}
+
+/**
+ * Pick a vision describer from env; undefined => the service uses a canned fallback.
+ * Set ARTINSIGHT_VISION_ENDPOINT to a local OpenAI-compatible server (Foundry Local,
+ * Ollama, ...) — which ignore the key — or set an OpenAI/Azure key for the cloud.
+ */
+function buildScreenDescriber(): SceneDescriber | undefined {
+  const endpoint = process.env.ARTINSIGHT_VISION_ENDPOINT;
+  const apiKey = process.env.ARTINSIGHT_OPENAI_API_KEY ?? process.env.OPENAI_API_KEY;
+  if (!endpoint && !apiKey) return undefined;
+  return new OpenAIVisionDescriber({
+    apiKey: apiKey ?? 'none',
+    endpoint,
+    model: process.env.ARTINSIGHT_VISION_MODEL,
   });
 }
 
@@ -190,7 +264,7 @@ function syncLuminanceCapture(activeHub: Hub): void {
 app
   .whenReady()
   .then(async () => {
-    const activeHub = await createHub();
+    const activeHub = await createHub({ services: [buildArtInSightService()] });
     hub = activeHub;
     wireActions();
     createWindow(activeHub);
