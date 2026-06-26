@@ -8,9 +8,10 @@ Each service can be toggled on/off independently, run alongside others, and is
 isolated so that one service crashing never takes down the hub or the user's
 control of their machine.
 
-> This repository is a **scaffold**. The kernel, coordinator, contracts, services,
-> and adapters expose their public shape and a minimal working core. Implementation
-> detail beyond the basics is intentionally left as `// TODO`.
+> The kernel, coordinator, contracts, services, and adapters expose their public
+> shape and are implemented. A few seams remain stubbed (`// TODO`) where they
+> require OS-native hooks or external transports — notably input-injection and the
+> ClawPilot MCP server.
 
 ## Layout
 
@@ -23,16 +24,25 @@ The top level mirrors the architecture diagram: each layer is a sibling folder.
   /coordinator             Mediator + mode state machines
   /contracts               Source-of-truth types -> TS + Python (+ JSON Schema)
 /services                  one per disability concern, isolated
+  /adaptive-learning       TS
+  /artinsight              TS
   /browser-ops             TS + Playwright
   /clawpilot               MCP server + skills
   /colorblind-contrast     TS (runs in shell)
-  /flash-filter            TS (runs in shell)
+  /conversation-coach      Python
+  /creative-studio         TS
   /eye-tracking            Python
-  /voice-commands          Python
+  /flash-filter            TS (runs in shell)
+  /gaze-correlation        Python
+  /gaze-dwell              Python
   /hand-signals            Python + FastAPI
+  /input-personalization   TS
   /live-captions           Python (mic -> STT -> caption overlay)
+  /pointing-magnifier      TS
+  /voice-commands          Python
 /adapters                  wrap OpenCV / ClawPilot / camera / audio / input
-  /camera /audio /input-injection /clawpilotMCP
+  /app-introspection /audio /audio-out /camera /clawpilotMCP
+  /display-capture /input-injection /ipc /tts
 /tests
   /fixtures                shared fakes (@aah/test-fixtures)
   /integration             cross-package / cross-language (IPC seam) tests
