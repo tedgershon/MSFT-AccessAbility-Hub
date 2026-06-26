@@ -105,6 +105,31 @@ describe('describeOverlayLayer', () => {
     expect(d).toEqual({ kind: 'caption', label: 'live caption' });
   });
 
+  it('derives a typography preset for a known adaptive-text style', () => {
+    const d = describeOverlayLayer({
+      id: 'a1',
+      ownerId: 'svc',
+      kind: 'adaptive-text',
+      params: { style: 'dyslexia' },
+    });
+
+    expect(d.kind).toBe('adaptive-text');
+    expect(d.label).toContain('dyslexia');
+    expect(d.style?.wordSpacing).toBe('0.16em');
+  });
+
+  it('falls back to a default typography preset for an unknown adaptive-text style', () => {
+    const d = describeOverlayLayer({
+      id: 'a2',
+      ownerId: 'svc',
+      kind: 'adaptive-text',
+      params: { style: 'telepathy' },
+    });
+
+    expect(d.kind).toBe('adaptive-text');
+    expect(d.style).toEqual({ lineHeight: '1.6' });
+  });
+
   it('uses params.label as the label for a sound-alert layer', () => {
     const d = describeOverlayLayer({
       id: 's1',

@@ -2,6 +2,7 @@
   "files": [],
   "references": [
     { "path": "./services/artinsight" },
+    { "path": "./services/adaptive-learning" },
     { "path": "./services/creative-studio" },
     { "path": "./core/contracts" },
     { "path": "./core/kernel" },
