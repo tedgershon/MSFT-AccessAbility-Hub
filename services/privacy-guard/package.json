@@ -1,0 +1,28 @@
+{
+  "name": "@aah/privacy-guard",
+  "version": "0.1.0",
+  "description": "Privacy Guard: scan the screen before sharing and privately warn blind & low-vision users about leaked visual info.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "lint": "echo \"(lint runs from the repo root: pnpm lint)\""
+  },
+  "dependencies": {
+    "@aah/contracts": "workspace:*",
+    "@aah/display-capture": "workspace:*",
+    "@aah/tts": "workspace:*"
+  },
+  "devDependencies": {
+    "@aah/test-fixtures": "workspace:*"
+  }
+}

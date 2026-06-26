@@ -30,6 +30,25 @@ export interface OverlayLayer {
   params?: Record<string, unknown>;
 }
 
+/** How strongly a privacy finding should be treated before sharing. */
+export type PrivacySeverity = 'warn' | 'block';
+
+/**
+ * A single private-info finding surfaced to the user before they share something.
+ *
+ * Deliberately render-agnostic (just identity + human text + severity) so it can be
+ * spoken, shown on the overlay, or relayed to the UI without the guard knowing how.
+ * `key` is a stable identity used to de-duplicate findings across a scan.
+ */
+export interface PrivacyFinding {
+  key: string;
+  text: string;
+  severity: PrivacySeverity;
+}
+
+/** The overall decision a Privacy Guard scan reached for one share candidate. */
+export type PrivacyDecision = 'allow' | 'warn' | 'block';
+
 /**
  * The canonical event map: `topic -> payload`. Add a topic here and both the bus
  * and every subscriber stay type-safe.
@@ -46,6 +65,18 @@ export interface EventMap {
   'input/intent': { source: string; kind: 'cursor' | 'keyboard'; payload: unknown };
   /** A tile requests an on-demand description of what is currently on screen. */
   'artinsight/describe-requested': { sourceId?: string };
+  /**
+   * A request to scan a share candidate (the current screen) for private info the
+   * user is about to leak. `sourceId` picks the display-capture source; omit it to
+   * let the guard choose the first available screen.
+   */
+  'privacy/scan-requested': { sourceId?: string };
+  /**
+   * The result of a Privacy Guard scan: the overall `decision` plus every `finding`
+   * surfaced, so the shell can hold the share and let the user decide. `block` means
+   * a hard leak (secret / card / ID) was found; `warn` is advisory; `allow` is clean.
+   */
+  'privacy/verdict': { sourceId?: string; decision: PrivacyDecision; findings: PrivacyFinding[] };
   /** Mount a renderable layer on the shared overlay surface. */
   'overlay/attach': OverlayLayer;
   /** Replace the content of an already-attached layer (e.g. live captions). */

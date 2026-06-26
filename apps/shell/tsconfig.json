@@ -11,6 +11,7 @@
     { "path": "../../core/coordinator" },
     { "path": "../../services/colorblind-contrast" },
     { "path": "../../services/artinsight" },
+    { "path": "../../services/privacy-guard" },
     { "path": "../../services/adaptive-learning" },
     { "path": "../../services/flash-filter" },
     { "path": "../../services/creative-studio" },

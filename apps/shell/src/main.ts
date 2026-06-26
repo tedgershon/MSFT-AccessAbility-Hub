@@ -26,6 +26,11 @@ import {
 } from '@aah/display-capture';
 import { TtsAdapter, WebSpeechTtsBackend, type WebSpeechBindings } from '@aah/tts';
 import { ArtInSightService, OpenAIVisionDescriber, type SceneDescriber } from '@aah/artinsight';
+import {
+  PrivacyGuardService,
+  OpenAIVisionShareAnalyzer,
+  type ShareAnalyzer,
+} from '@aah/privacy-guard';
 import { createHub, type Hub } from './bootstrap.js';
 import { DisplayLuminancePublisher } from './display-luminance-publisher.js';
 import { IPC } from './ui/ipc-contract.js';
@@ -111,15 +116,18 @@ function wireActions(): void {
   ipcMain.handle(IPC.describe, async (_event, sourceId?: string) => {
     hub?.kernel.bus.emit('artinsight/describe-requested', { sourceId });
   });
+  ipcMain.handle(IPC.scan, async (_event, sourceId?: string) => {
+    hub?.kernel.bus.emit('privacy/scan-requested', { sourceId });
+  });
 }
 
 /**
- * Build the ArtInSight tile with Electron-backed adapters the headless bootstrap
- * can't construct: screen capture via `desktopCapturer`, and speech routed to the
- * renderer's Web Speech API. The vision describer is config-driven and falls back to
- * a canned describer when no API key is set, so the hub still boots offline.
+ * Build the Electron-backed adapters the headless bootstrap can't construct: screen
+ * capture via `desktopCapturer`, and speech routed to the renderer's Web Speech API.
+ * Shared by the screen-reading tiles (ArtInSight, Privacy Guard) so they capture and
+ * speak through one path.
  */
-function buildArtInSightService(): ArtInSightService {
+function buildScreenAdapters(): { capture: DisplayCaptureAdapter; tts: TtsAdapter } {
   const captureBindings: DesktopCaptureBindings = {
     async listSources() {
       const sources = await desktopCapturer.getSources({
@@ -159,7 +167,28 @@ function buildArtInSightService(): ArtInSightService {
   };
   const tts = new TtsAdapter(new WebSpeechTtsBackend(speechBindings));
 
+  return { capture, tts };
+}
+
+/**
+ * Build the ArtInSight tile with the shared Electron-backed adapters. The vision
+ * describer is config-driven and falls back to a canned describer when no API key is
+ * set, so the hub still boots offline.
+ */
+function buildArtInSightService(): ArtInSightService {
+  const { capture, tts } = buildScreenAdapters();
   return new ArtInSightService({ capture, tts, describer: buildScreenDescriber() });
+}
+
+/**
+ * Build the Privacy Guard tile: capture the screen, read its text/faces with a vision
+ * analyzer, and warn before sharing. Reuses the shared screen adapters; the analyzer
+ * is config-driven (same env keys as ArtInSight) and falls back to a canned analyzer
+ * that finds nothing when no vision model is configured, so the hub boots offline.
+ */
+function buildPrivacyGuardService(): PrivacyGuardService {
+  const { capture, tts } = buildScreenAdapters();
+  return new PrivacyGuardService({ capture, tts, analyzer: buildShareAnalyzer() });
 }
 
 /**
@@ -172,6 +201,22 @@ function buildScreenDescriber(): SceneDescriber | undefined {
   const apiKey = process.env.ARTINSIGHT_OPENAI_API_KEY ?? process.env.OPENAI_API_KEY;
   if (!endpoint && !apiKey) return undefined;
   return new OpenAIVisionDescriber({
+    apiKey: apiKey ?? 'none',
+    endpoint,
+    model: process.env.ARTINSIGHT_VISION_MODEL,
+  });
+}
+
+/**
+ * Pick a vision analyzer for Privacy Guard from env; undefined => the service uses a
+ * canned analyzer that finds nothing. Shares ArtInSight's vision config (endpoint /
+ * key / model) so one setup powers both screen-reading tiles.
+ */
+function buildShareAnalyzer(): ShareAnalyzer | undefined {
+  const endpoint = process.env.ARTINSIGHT_VISION_ENDPOINT;
+  const apiKey = process.env.ARTINSIGHT_OPENAI_API_KEY ?? process.env.OPENAI_API_KEY;
+  if (!endpoint && !apiKey) return undefined;
+  return new OpenAIVisionShareAnalyzer({
     apiKey: apiKey ?? 'none',
     endpoint,
     model: process.env.ARTINSIGHT_VISION_MODEL,
@@ -264,7 +309,9 @@ function syncLuminanceCapture(activeHub: Hub): void {
 app
   .whenReady()
   .then(async () => {
-    const activeHub = await createHub({ services: [buildArtInSightService()] });
+    const activeHub = await createHub({
+      services: [buildArtInSightService(), buildPrivacyGuardService()],
+    });
     hub = activeHub;
     wireActions();
     createWindow(activeHub);

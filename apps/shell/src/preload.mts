@@ -34,6 +34,9 @@ const api: HubBridge = {
   describe(sourceId) {
     return ipcRenderer.invoke(IPC.describe, sourceId) as Promise<void>;
   },
+  scan(sourceId) {
+    return ipcRenderer.invoke(IPC.scan, sourceId) as Promise<void>;
+  },
   onSpeak(cb) {
     ipcRenderer.on(IPC.speak, (_event, req: SpeakRequest) => cb(req));
   },

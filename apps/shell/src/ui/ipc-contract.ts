@@ -29,6 +29,8 @@ export const IPC = {
   disable: 'hub:disable',
   /** renderer -> main: request a description of what is currently on screen. */
   describe: 'hub:describe',
+  /** renderer -> main: scan the current screen for private info before sharing. */
+  scan: 'hub:scan',
   /** main -> renderer: speak some text via the Web Speech API. Payload: {@link SpeakRequest}. */
   speak: 'hub:speak',
   /** main -> renderer: cancel any in-progress speech. */
@@ -84,6 +86,8 @@ export interface HubBridge {
   disable(id: string): Promise<void>;
   /** Ask the hub to describe what is currently on screen. */
   describe(sourceId?: string): Promise<void>;
+  /** Ask the hub to scan the current screen for private info before sharing. */
+  scan(sourceId?: string): Promise<void>;
   /** Subscribe to speak requests (text voiced via the Web Speech API). */
   onSpeak(cb: (req: SpeakRequest) => void): void;
   /** Subscribe to cancel-speech requests. */

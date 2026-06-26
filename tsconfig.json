@@ -4,6 +4,7 @@
     { "path": "./services/artinsight" },
     { "path": "./services/adaptive-learning" },
     { "path": "./services/creative-studio" },
+    { "path": "./services/privacy-guard" },
     { "path": "./core/contracts" },
     { "path": "./core/kernel" },
     { "path": "./core/coordinator" },

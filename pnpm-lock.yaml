@@ -109,6 +109,9 @@ importers:
       '@aah/kernel':
         specifier: workspace:*
         version: link:../../core/kernel
+      '@aah/privacy-guard':
+        specifier: workspace:*
+        version: link:../../services/privacy-guard
       '@aah/tts':
         specifier: workspace:*
         version: link:../../adapters/tts
@@ -218,6 +221,22 @@ importers:
       '@aah/contracts':
         specifier: workspace:*
         version: link:../../core/contracts
+    devDependencies:
+      '@aah/test-fixtures':
+        specifier: workspace:*
+        version: link:../../tests/fixtures
+
+  services/privacy-guard:
+    dependencies:
+      '@aah/contracts':
+        specifier: workspace:*
+        version: link:../../core/contracts
+      '@aah/display-capture':
+        specifier: workspace:*
+        version: link:../../adapters/display-capture
+      '@aah/tts':
+        specifier: workspace:*
+        version: link:../../adapters/tts
     devDependencies:
       '@aah/test-fixtures':
         specifier: workspace:*
