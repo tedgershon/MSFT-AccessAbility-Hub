@@ -10,29 +10,117 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
+    <a class="skip-link" href="#tile-grid">Skip to aids</a>
+
     <header class="app-header">
-      <h1>AccessAbility Hub</h1>
-      <p class="subtitle">Microkernel accessibility services</p>
+      <div class="app-header__brand">
+        <span class="app-header__mark" aria-hidden="true"></span>
+        <h1>AccessAbility Hub</h1>
+      </div>
+
+      <div class="app-header__controls">
+        <div class="app-header__find" role="search">
+          <label class="field field--search">
+            <span class="field__label visually-hidden">Search aids</span>
+            <input
+              id="search"
+              type="search"
+              class="field__input"
+              placeholder="Search by need…"
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </label>
+
+          <label class="field field--filter">
+            <span class="field__label visually-hidden">Filter by need</span>
+            <select id="tag-filter" class="field__input"></select>
+          </label>
+        </div>
+
+        <button
+          id="customize-button"
+          class="icon-button"
+          type="button"
+          aria-haspopup="true"
+          aria-expanded="false"
+          aria-controls="customize-panel"
+        >
+          <span aria-hidden="true">Aa</span>
+          <span class="visually-hidden">Customize appearance</span>
+        </button>
+      </div>
     </header>
 
     <main class="app-body">
-      <section class="panel" aria-labelledby="scene-heading">
-        <h2 id="scene-heading">Screen description</h2>
-        <button id="describe-button" class="describe-button" type="button">
-          Describe what's on screen
-        </button>
-        <p id="describe-status" class="describe-status" role="status" aria-live="polite"></p>
+      <section
+        id="onboarding"
+        class="onboarding"
+        aria-labelledby="onboarding-heading"
+        hidden
+      >
+        <h2 id="onboarding-heading" class="onboarding__heading">
+          What do you want help with?
+        </h2>
+        <div id="onboarding-chips" class="onboarding__chips"></div>
       </section>
 
-      <section class="panel" aria-labelledby="services-heading">
-        <h2 id="services-heading">Services</h2>
-        <ul id="service-list" class="service-list"></ul>
+      <section
+        id="customize-panel"
+        class="customize-panel"
+        aria-labelledby="customize-heading"
+        hidden
+      >
+        <h2 id="customize-heading">Appearance</h2>
+        <div class="customize-grid">
+          <fieldset class="customize-group">
+            <legend>Text size</legend>
+            <label><input type="radio" name="textSize" value="normal" /> Normal</label>
+            <label><input type="radio" name="textSize" value="large" /> Large</label>
+            <label><input type="radio" name="textSize" value="x-large" /> Extra large</label>
+          </fieldset>
+
+          <fieldset class="customize-group">
+            <legend>Theme</legend>
+            <label><input type="radio" name="theme" value="light" /> Light</label>
+            <label><input type="radio" name="theme" value="dark" /> Dark</label>
+            <label><input type="radio" name="theme" value="system" /> System</label>
+          </fieldset>
+
+          <fieldset class="customize-group">
+            <legend>Contrast</legend>
+            <label><input type="radio" name="contrast" value="standard" /> Standard</label>
+            <label><input type="radio" name="contrast" value="high" /> High</label>
+          </fieldset>
+
+          <fieldset class="customize-group">
+            <legend>Motion</legend>
+            <label><input type="radio" name="motion" value="full" /> Full</label>
+            <label><input type="radio" name="motion" value="reduced" /> Reduced</label>
+          </fieldset>
+        </div>
       </section>
 
-      <section class="panel" aria-labelledby="overlay-heading">
-        <h2 id="overlay-heading">Overlay layers</h2>
-        <ul id="overlay-list" class="overlay-list"></ul>
-      </section>
+      <p id="grid-status" class="visually-hidden" role="status" aria-live="polite"></p>
+
+      <div id="tile-grid" class="tile-grid"></div>
+
+      <details class="activity">
+        <summary>Activity &amp; diagnostics</summary>
+
+        <section class="panel" aria-labelledby="scene-heading">
+          <h2 id="scene-heading">Screen description</h2>
+          <button id="describe-button" class="describe-button" type="button">
+            Describe what's on screen
+          </button>
+          <p id="describe-status" class="describe-status" role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="panel" aria-labelledby="overlay-heading">
+          <h2 id="overlay-heading">Active overlay layers</h2>
+          <ul id="overlay-list" class="overlay-list" aria-live="polite"></ul>
+        </section>
+      </details>
     </main>
 
     <!-- Compiled by tsconfig.renderer.json into ../dist-renderer/. -->
