@@ -16,6 +16,12 @@ features by adding services, never by editing the kernel.
 work), `adapters/` (hardware/external wrappers), `apps/shell/` (Electron host),
 `tests/fixtures` + `tests/integration`.
 
+**Web / shell work:** the Electron UI in `apps/shell/` is governed by
+`.github/instructions/shell.instructions.md` (auto-applied to web files) — pure
+renderer + `window.hub` bridge, strict CSP, Azure/Fluent design tokens, WCAG 2.2 AA.
+Invokable workflows live in `.github/prompts/`: **a11y-audit** (accessibility pass) and
+**new-tile** (scaffold a tile UI).
+
 **To add a service:** `task new:service -- <id> ts|py`, then implement `requires`,
 the lifecycle hooks, and `healthCheck()`. Path-scoped rules live in
 `.github/instructions/`.
