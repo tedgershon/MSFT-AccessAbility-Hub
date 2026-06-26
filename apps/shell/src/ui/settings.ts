@@ -41,15 +41,18 @@ const CONTRASTS: readonly ContrastPref[] = ['standard', 'high'];
 const MOTIONS: readonly MotionPref[] = ['full', 'reduced'];
 
 /**
- * Seed a fresh settings object from system preferences. Explicit user choices made
- * later win over these defaults (they are persisted and restored verbatim).
+ * Seed a fresh settings object. Defaults are fixed and predictable — normal text,
+ * light theme, standard contrast, full motion — so a first-time user always lands on
+ * the same calm baseline. Explicit user choices made later win over these defaults
+ * (they are persisted and restored verbatim). System preferences are not consulted
+ * here; users can still choose `theme: 'system'` to track the OS.
  */
-export function defaultSettings(prefs: SystemPrefs): HubSettings {
+export function defaultSettings(_prefs: SystemPrefs): HubSettings {
   return {
     textSize: 'normal',
-    theme: 'system',
-    contrast: prefs.prefersHighContrast ? 'high' : 'standard',
-    motion: prefs.prefersReducedMotion ? 'reduced' : 'full',
+    theme: 'light',
+    contrast: 'standard',
+    motion: 'full',
     pinned: [],
   };
 }

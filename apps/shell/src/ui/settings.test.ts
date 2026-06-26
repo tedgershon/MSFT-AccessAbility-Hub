@@ -22,22 +22,21 @@ const NO_PREFS: SystemPrefs = {
 };
 
 describe('defaultSettings', () => {
-  it('seeds neutral defaults when the system has no strong preferences', () => {
+  it('seeds fixed, predictable defaults (light, standard, full, normal)', () => {
     expect(defaultSettings(NO_PREFS)).toEqual({
       textSize: 'normal',
-      theme: 'system',
+      theme: 'light',
       contrast: 'standard',
       motion: 'full',
       pinned: [],
     });
   });
 
-  it('seeds reduced motion and high contrast from system preferences', () => {
+  it('ignores system preferences so the baseline is always the same', () => {
     const s = defaultSettings({ prefersDark: true, prefersReducedMotion: true, prefersHighContrast: true });
-    expect(s.motion).toBe('reduced');
-    expect(s.contrast).toBe('high');
-    // Theme stays `system` so it tracks the OS, resolved later.
-    expect(s.theme).toBe('system');
+    expect(s.motion).toBe('full');
+    expect(s.contrast).toBe('standard');
+    expect(s.theme).toBe('light');
   });
 });
 
@@ -71,7 +70,7 @@ describe('parseSettings', () => {
     });
     expect(parseSettings(raw, NO_PREFS)).toEqual({
       textSize: 'normal',
-      theme: 'system',
+      theme: 'light',
       contrast: 'standard',
       motion: 'full',
       pinned: ['a', 'b'],

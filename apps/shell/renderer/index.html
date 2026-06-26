@@ -7,6 +7,7 @@
       content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'"
     />
     <title>AccessAbility Hub</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -14,12 +15,53 @@
 
     <header class="app-header">
       <div class="app-header__brand">
-        <span class="app-header__mark" aria-hidden="true"></span>
+        <span class="app-header__mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" focusable="false" aria-hidden="true">
+            <rect width="32" height="32" rx="8" fill="#0067b8" />
+            <circle cx="16" cy="9" r="2.6" fill="#ffffff" />
+            <path
+              d="M6.5 13.5c3 1.3 6.1 1.9 9.5 1.9s6.5-.6 9.5-1.9"
+              fill="none"
+              stroke="#ffffff"
+              stroke-width="2.4"
+              stroke-linecap="round"
+            />
+            <path
+              d="M16 12.5V19M16 19l-4 7.5M16 19l4 7.5"
+              fill="none"
+              stroke="#ffffff"
+              stroke-width="2.4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </span>
         <h1>AccessAbility Hub</h1>
       </div>
 
-      <div class="app-header__controls">
-        <div class="app-header__find" role="search">
+      <button
+        id="customize-button"
+        class="icon-button"
+        type="button"
+        aria-haspopup="dialog"
+        aria-expanded="false"
+        aria-controls="customize-panel"
+      >
+        <span aria-hidden="true">Aa</span>
+        <span class="visually-hidden">Customize your settings</span>
+      </button>
+    </header>
+
+    <main class="app-body">
+      <section
+        id="onboarding"
+        class="onboarding"
+        aria-labelledby="onboarding-heading"
+      >
+        <h2 id="onboarding-heading" class="onboarding__heading">
+          What do you want help with?
+        </h2>
+        <div class="onboarding__controls" role="search">
           <label class="field field--search">
             <span class="field__label visually-hidden">Search aids</span>
             <input
@@ -37,41 +79,22 @@
             <select id="tag-filter" class="field__input"></select>
           </label>
         </div>
-
-        <button
-          id="customize-button"
-          class="icon-button"
-          type="button"
-          aria-haspopup="true"
-          aria-expanded="false"
-          aria-controls="customize-panel"
-        >
-          <span aria-hidden="true">Aa</span>
-          <span class="visually-hidden">Customize appearance</span>
-        </button>
-      </div>
-    </header>
-
-    <main class="app-body">
-      <section
-        id="onboarding"
-        class="onboarding"
-        aria-labelledby="onboarding-heading"
-        hidden
-      >
-        <h2 id="onboarding-heading" class="onboarding__heading">
-          What do you want help with?
-        </h2>
-        <div id="onboarding-chips" class="onboarding__chips"></div>
+        <div id="active-filters" class="onboarding__active" aria-live="polite"></div>
       </section>
 
+      <div id="customize-backdrop" class="modal-backdrop" hidden></div>
       <section
         id="customize-panel"
         class="customize-panel"
+        role="dialog"
+        aria-modal="true"
         aria-labelledby="customize-heading"
         hidden
       >
-        <h2 id="customize-heading">Appearance</h2>
+        <div class="customize-panel__head">
+          <h2 id="customize-heading">Customize your settings</h2>
+          <button id="customize-done" class="customize-done" type="button">Done</button>
+        </div>
         <div class="customize-grid">
           <fieldset class="customize-group">
             <legend>Text size</legend>
@@ -98,6 +121,31 @@
             <label><input type="radio" name="motion" value="full" /> Full</label>
             <label><input type="radio" name="motion" value="reduced" /> Reduced</label>
           </fieldset>
+        </div>
+      </section>
+
+      <div id="steps-backdrop" class="modal-backdrop" hidden></div>
+      <section
+        id="steps-modal"
+        class="steps-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="steps-title"
+        hidden
+      >
+        <div class="steps-modal__head">
+          <h2 id="steps-title">Set up</h2>
+          <button id="steps-close" class="steps-close" type="button" aria-label="Close">
+            <span aria-hidden="true">&#10005;</span>
+          </button>
+        </div>
+        <p id="steps-count" class="steps-modal__count"></p>
+        <div id="steps-body" class="steps-modal__body" aria-live="polite"></div>
+        <div class="steps-modal__nav">
+          <button id="steps-back" class="steps-nav-btn" type="button">Back</button>
+          <button id="steps-next" class="steps-nav-btn steps-nav-btn--primary" type="button">
+            Next
+          </button>
         </div>
       </section>
 

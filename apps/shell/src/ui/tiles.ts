@@ -18,8 +18,9 @@
 export type TilePhase = 'built' | 'partial' | 'planned';
 
 /**
- * A category icon key. Drives the tinted icon tile (colour + glyph) so users locate
- * aids by shape + colour, not by reading alone (recognition over recall).
+ * An icon key. Drives the tinted icon tile (colour + glyph) so users locate aids by
+ * shape + colour, not by reading alone (recognition over recall). Most aids use their
+ * impairment-category glyph; a few use a more descriptive, aid-specific glyph.
  */
 export type TileIcon =
   | 'vision'
@@ -28,7 +29,23 @@ export type TileIcon =
   | 'cognitive'
   | 'motor'
   | 'social'
-  | 'photo';
+  | 'photo'
+  | 'describe'
+  | 'privacy'
+  | 'creative'
+  | 'simplify';
+
+/**
+ * A hardware / OS capability an aid depends on. Surfaced as a small emoji tag under
+ * each tile so users can see at a glance what an aid will use (camera, mic, screen, …).
+ */
+export type InputSource =
+  | 'camera'
+  | 'microphone'
+  | 'screen'
+  | 'os-input'
+  | 'files'
+  | 'audio-out';
 
 /** One aid in the catalog. */
 export interface TileDef {
@@ -44,6 +61,8 @@ export interface TileDef {
   tag: string;
   /** Primary input the aid needs (screen, microphone, camera, …). */
   input: string;
+  /** Input sources the aid relies on; rendered as emoji tags under the tile. */
+  inputs: InputSource[];
   /** Build status — gates whether the tile toggles live. */
   phase: TilePhase;
   /** Category icon key for the tinted icon tile. */
@@ -56,12 +75,12 @@ export interface TileDef {
  */
 export const GROUP_ORDER: readonly string[] = [
   'Vision',
-  'Colour vision',
+  'Color Vision',
   'Hearing',
-  'Cognitive',
-  'Motor & dexterity',
-  'Social / autism',
-  'Photosensitivity',
+  'Dyslexia, ADHD & Cognitive',
+  'Dexterity',
+  'Autism',
+  'Epilepsy',
 ];
 
 /**
@@ -72,90 +91,99 @@ export const TILE_CATALOG: readonly TileDef[] = [
   {
     id: 'scene-describer',
     title: 'Scene Describer',
-    description: 'Narrates what the camera sees — snapshot describe plus point/gaze announce.',
+    description: 'Tells you what your camera sees.',
     group: 'Vision',
     tag: 'blind & low vision',
     input: 'camera',
+    inputs: ['camera'],
     phase: 'partial',
-    icon: 'vision',
+    icon: 'describe',
   },
   {
     id: 'privacy-guard',
     title: 'Privacy Guard',
-    description: 'Scans images and screen before sharing and warns about private visual content.',
+    description: 'Warns you before you share private things.',
     group: 'Vision',
     tag: 'blind & low vision',
     input: 'camera / files',
+    inputs: ['screen', 'files'],
     phase: 'planned',
-    icon: 'vision',
+    icon: 'privacy',
   },
   {
     id: 'creative-studio',
     title: 'Creative Studio',
-    description: 'Mediates creative apps for blind and low-vision users — narrates state, automates steps.',
+    description: 'Helps you make art without sight.',
     group: 'Vision',
     tag: 'blind & low vision',
     input: 'screen + audio',
+    inputs: ['screen', 'audio-out'],
     phase: 'built',
-    icon: 'vision',
+    icon: 'creative',
   },
   {
     id: 'colorblind-contrast',
     title: 'Color & Contrast',
-    description: 'Real-time colour and contrast correction as a display overlay.',
-    group: 'Colour vision',
+    description: 'Fixes colors that are hard to tell apart.',
+    group: 'Color Vision',
     tag: 'color vision deficiency',
     input: 'screen',
+    inputs: ['screen'],
     phase: 'built',
     icon: 'colour',
   },
   {
     id: 'live-captions',
     title: 'Live Captions',
-    description: 'Turns system and mic audio into live captions plus non-speech sound alerts.',
+    description: 'Turns speech into text on screen.',
     group: 'Hearing',
     tag: 'deaf & hard of hearing',
     input: 'microphone',
+    inputs: ['microphone'],
     phase: 'built',
     icon: 'hearing',
   },
   {
     id: 'simplify-text',
     title: 'Simplify Text',
-    description: 'Reads complex on-screen text and re-injects a simplified version in place.',
-    group: 'Cognitive',
+    description: 'Makes hard text easier to read.',
+    group: 'Dyslexia, ADHD & Cognitive',
     tag: 'dyslexia, ADHD & cognitive',
     input: 'screen',
+    inputs: ['screen'],
     phase: 'partial',
-    icon: 'cognitive',
+    icon: 'simplify',
   },
   {
     id: 'input-assist',
     title: 'Input Assist',
-    description: 'Cursor magnification and target-assist plus input remapping.',
-    group: 'Motor & dexterity',
+    description: 'Makes your mouse and keys easier to use.',
+    group: 'Dexterity',
     tag: 'motor & dexterity',
     input: 'os-input',
+    inputs: ['os-input'],
     phase: 'planned',
     icon: 'motor',
   },
   {
     id: 'conversation-coach',
     title: 'Conversation Coach',
-    description: 'On calls, privately surfaces repair prompts from camera and audio.',
-    group: 'Social / autism',
+    description: 'Helps you keep up in conversations.',
+    group: 'Autism',
     tag: 'autism',
     input: 'camera + microphone',
+    inputs: ['camera', 'microphone'],
     phase: 'built',
     icon: 'social',
   },
   {
     id: 'flash-filter',
     title: 'Flash Filter',
-    description: 'Detects seizure-triggering flashing and dims or filters it in real time.',
-    group: 'Photosensitivity',
+    description: 'Dims dangerous flashing.',
+    group: 'Epilepsy',
     tag: 'photosensitive epilepsy',
     input: 'screen',
+    inputs: ['screen'],
     phase: 'built',
     icon: 'photo',
   },

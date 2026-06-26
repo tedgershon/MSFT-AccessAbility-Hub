@@ -264,7 +264,12 @@ function syncLuminanceCapture(activeHub: Hub): void {
 app
   .whenReady()
   .then(async () => {
-    const activeHub = await createHub({ services: [buildArtInSightService()] });
+    // Boot every service DISABLED: nothing runs until the user explicitly enables a
+    // tile. `autoEnable: false` keeps the hub idle (and leases unclaimed) at startup.
+    const activeHub = await createHub({
+      services: [buildArtInSightService()],
+      autoEnable: false,
+    });
     hub = activeHub;
     wireActions();
     createWindow(activeHub);
@@ -274,7 +279,7 @@ app
     activeHub.kernel.bus.on('service/phase-changed', ({ serviceId }) => {
       if (serviceId === FLASH_FILTER_ID) syncLuminanceCapture(activeHub);
     });
-    // createHub auto-enables services before we subscribed above, so reconcile once.
+    // Services boot disabled, so capture stays off until flash-filter is enabled.
     syncLuminanceCapture(activeHub);
 
     // macOS convention: re-open a window when the dock icon is clicked.

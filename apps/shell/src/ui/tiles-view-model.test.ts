@@ -17,6 +17,7 @@ function def(over: Partial<TileDef> = {}): TileDef {
     group: 'Vision',
     tag: 'blind & low vision',
     input: 'camera',
+    inputs: ['camera'],
     phase: 'built',
     icon: 'vision',
     ...over,
